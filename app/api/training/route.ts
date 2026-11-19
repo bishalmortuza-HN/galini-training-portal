@@ -44,12 +44,18 @@ export async function GET(request: NextRequest) {
   const { data: enrollmentRows, error: enrollmentError } = await enrollments.order("enrolled_at", { ascending: false });
   if (enrollmentError) return NextResponse.json({ error: enrollmentError.message }, { status: 503 });
   const userIds = Array.from(new Set((enrollmentRows || []).map((row: { user_id: string }) => row.user_id)));
+  const agencyIds = Array.from(new Set((enrollmentRows || []).map((row: { agency_id?: string | null }) => row.agency_id).filter((value: string | null | undefined): value is string => Boolean(value))));
   let memberMap: Record<string, { full_name?: string | null; email?: string | null; agent_code?: string | null }> = {};
+  let agencyMap: Record<string, string> = {};
   if (userIds.length) {
     const { data: members } = await admin.from("profiles").select("id,full_name,email,agent_code").in("id", userIds);
     memberMap = Object.fromEntries((members || []).map((member: { id: string; full_name?: string | null; email?: string | null; agent_code?: string | null }) => [member.id, { full_name: member.full_name, email: member.email, agent_code: member.agent_code }]));
   }
-  return NextResponse.json({ courses: courseRows || [], enrollments: (enrollmentRows || []).map((row: { user_id: string }) => ({ ...row, member: memberMap[row.user_id] || null })) });
+  if (agencyIds.length) {
+    const { data: agencyRows } = await admin.from("agencies").select("id,agency_name").in("id", agencyIds);
+    agencyMap = Object.fromEntries((agencyRows || []).map((agency: { id: string; agency_name?: string | null }) => [agency.id, agency.agency_name || agency.id]));
+  }
+  return NextResponse.json({ courses: courseRows || [], enrollments: (enrollmentRows || []).map((row: { user_id: string; agency_id?: string | null }) => ({ ...row, member: memberMap[row.user_id] || null, agency_name: row.agency_id ? agencyMap[row.agency_id] || row.agency_id : null })) });
 }
 
 export async function POST(request: NextRequest) {
