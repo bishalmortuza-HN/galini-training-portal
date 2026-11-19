@@ -43,7 +43,13 @@ export async function GET(request: NextRequest) {
   }
   const { data: enrollmentRows, error: enrollmentError } = await enrollments.order("enrolled_at", { ascending: false });
   if (enrollmentError) return NextResponse.json({ error: enrollmentError.message }, { status: 503 });
-  return NextResponse.json({ courses: courseRows || [], enrollments: enrollmentRows || [] });
+  const userIds = Array.from(new Set((enrollmentRows || []).map((row: { user_id: string }) => row.user_id)));
+  let memberMap: Record<string, { full_name?: string | null; email?: string | null; agent_code?: string | null }> = {};
+  if (userIds.length) {
+    const { data: members } = await admin.from("profiles").select("id,full_name,email,agent_code").in("id", userIds);
+    memberMap = Object.fromEntries((members || []).map((member: { id: string; full_name?: string | null; email?: string | null; agent_code?: string | null }) => [member.id, { full_name: member.full_name, email: member.email, agent_code: member.agent_code }]));
+  }
+  return NextResponse.json({ courses: courseRows || [], enrollments: (enrollmentRows || []).map((row: { user_id: string }) => ({ ...row, member: memberMap[row.user_id] || null })) });
 }
 
 export async function POST(request: NextRequest) {
@@ -74,8 +80,8 @@ export async function POST(request: NextRequest) {
     const userIds = Array.isArray(body.user_ids) ? body.user_ids.map(String) : [];
     if (!courseId || !userIds.length) return NextResponse.json({ error: "Choose a course and at least one agent." }, { status: 400 });
     if (role === "agency_admin") {
-      const { data: members, error } = await admin.from("profiles").select("id").eq("agency_id", actor.profile.agency_id).in("id", userIds);
-      if (error || (members || []).length !== userIds.length) return NextResponse.json({ error: "You can only assign training to members of your agency." }, { status: 403 });
+      const { data: members, error } = await admin.from("profiles").select("id").eq("agency_id", actor.profile.agency_id).eq("role", "agent").eq("status", "active").in("id", userIds);
+      if (error || (members || []).length !== userIds.length) return NextResponse.json({ error: "You can only assign training to active agents in your agency." }, { status: 403 });
     }
     const { data: course, error: courseError } = await admin.from("training_courses").select("id").eq("id", courseId).maybeSingle();
     if (courseError || !course) return NextResponse.json({ error: "Course not found." }, { status: 404 });
