@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const actor = await actorFor(request);
   if (!actor) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
+  if (actor.role !== "platform_admin") return NextResponse.json({ error: "Only a platform administrator can manually correct course progress. Agents must complete lessons to update progress." }, { status: 403 });
   const body = await request.json().catch(() => null);
   const id=String(body?.enrollment_id||"");
   const progress=Math.max(0,Math.min(100,Number(body?.progress_percent)||0));
