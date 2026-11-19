@@ -17,7 +17,8 @@ export async function POST(request: NextRequest) {
     if (body.kind === "profile") {
       const rows = await sql`UPDATE profiles SET status='active', updated_at=now() WHERE id=${body.id} RETURNING id, agency_id`;
       if (!rows.length) return NextResponse.json({ error: "Member not found." }, { status: 404 });
-      if (rows[0].agency_id) await sql`UPDATE agency_memberships SET status='active' WHERE user_id=${body.id}`;
+      // profiles.agency_id is the authoritative agency link; agency_memberships
+      // references the legacy app_users table and must not be updated with profile IDs.
       return NextResponse.json({ ok: true, id: rows[0].id });
     }
     const status = body.status === "verified" ? "verified" : "rejected";
