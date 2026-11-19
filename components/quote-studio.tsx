@@ -32,7 +32,8 @@ function Section({title,description,children}:any){return <section className="qu
 export default function QuoteStudio({onSaved}:Props){
  const [line,setLine]=useState("Personal Auto");
  const [step,setStep]=useState("applicant");
- const [v,setV]=useState<Row>(defaults);\n const [drafts,setDrafts]=useState<Record<string,any>>({});
+ const [v,setV]=useState<Row>(defaults);
+ const [drafts,setDrafts]=useState<Record<string,any>>({});
  const [vehicles,setVehicles]=useState<Row[]>([{year:"2022",make:"Honda",model:"Accord",use:"Commute",mileage:"12000",value:"25000",gvw:"",radius:"100"}]);
  const [drivers,setDrivers]=useState<Row[]>([{name:"Driver 1",age:"35",experience:"15",violations:"0"}]);
  const [locations,setLocations]=useState<Row[]>([{name:"Location 1",occupancy:"Office",year:"2000",construction:"Frame",building:"0",bpp:"50000",roof:"10"}]);
