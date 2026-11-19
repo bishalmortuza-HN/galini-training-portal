@@ -29,3 +29,12 @@ Roles: `platform_admin`, `agency_admin`, and agent (other role values).
 - Payment review is intentionally shown as not connected until the actual payment table and provider workflow are verified.
 - The approval API verifies the signed-in user and platform-admin role on the server before using the service-role key.
 - Verify actual Supabase table/column names and RLS policies before enabling production approvals.
+
+## Training center setup
+The unified portal now includes a Training Center for all roles:
+- Platform administrators create and publish courses.
+- Agency administrators assign published courses to active agency agents and review progress.
+- Agents open course materials and update their progress from assigned to completed.
+- Course content is supplied by the Galini administrator as a URL; the portal does not invent or preload course material.
+
+Before using Training Center, run `supabase/migrations/20261119_training_courses.sql` in the existing Galini Supabase SQL Editor. It creates `training_courses` and `training_enrollments`. The server-side API uses the service role only after validating the user's session, active profile, and role. Do not expose the service role key in client-side variables.
