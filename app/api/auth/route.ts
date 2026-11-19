@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       const status = isBootstrapAdmin ? "active" : "pending";
       const inserted = await sql`INSERT INTO profiles (email, full_name, password_hash, role, status, agency_id) VALUES (${email}, ${fullName}, ${hashPassword(password)}, ${role}, ${status}, ${agencyId}) RETURNING id, email, full_name, role, status, agent_code, agency_id`;
       user = inserted[0];
-      if (agencyId) await sql`INSERT INTO agency_memberships (agency_id, user_id, role, status) VALUES (${agencyId}, ${user.id}, ${role}, 'pending') ON CONFLICT (agency_id, user_id) DO NOTHING`;
+      // profiles.agency_id is the authoritative membership link. The legacy agency_memberships.user_id FK targets app_users, so do not write profile IDs into that table.
       // Verification tokens are stored now; email delivery remains disabled until SMTP is configured.
       if (!isBootstrapAdmin) {
         const token = randomBytes(32).toString("hex");
