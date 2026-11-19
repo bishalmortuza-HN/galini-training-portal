@@ -1,32 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { sql } from "@/lib/db";
+import { actorFor } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
-  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_galiniSUPABASE_URL;
-  const anon = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_galiniSUPABASE_ANON_KEY;
-  const service = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
-  if (!url || !anon || !service) return NextResponse.json({ error: "Server-side Supabase configuration is incomplete. Ask the site owner to verify the Galini environment variables." }, { status: 503 });
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  if (!token) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
-
-  const authClient = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data: authData, error: authError } = await authClient.auth.getUser(token);
-  if (authError || !authData.user) return NextResponse.json({ error: "Your session is invalid. Please sign in again." }, { status: 401 });
-
-  const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data: actor, error: actorError } = await admin.from("profiles").select("role,status").eq("id", authData.user.id).maybeSingle();
-  if (actorError || actor?.role !== "platform_admin" || !["active", "approved"].includes(actor.status || "")) {
-    return NextResponse.json({ error: "Only an active platform administrator can approve accounts." }, { status: 403 });
-  }
-
-  const body = await request.json().catch(() => null) as { kind?: string; id?: string } | null;
-  if (!body?.id || !["agency", "profile"].includes(body.kind || "")) return NextResponse.json({ error: "Invalid approval request." }, { status: 400 });
-
-  const table = body.kind === "agency" ? "agencies" : "profiles";
-  const update = body.kind === "agency" ? { status: "active", membership_status: "active" } : { status: "active" };
-  let query = admin.from(table).update(update).eq("id", body.id);
-  const { data, error } = await query.select("id").maybeSingle();
-  if (error) return NextResponse.json({ error: "Approval could not be saved: " + error.message }, { status: 400 });
-  if (!data) return NextResponse.json({ error: "The requested record was not found or could not be updated." }, { status: 404 });
-  return NextResponse.json({ ok: true, id: data.id });
+  const actor = await actorFor(request);
+  if (!actor) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
+  if (actor.role !== "platform_admin" || !["active","approved"].includes(actor.status)) return NextResponse.json({ error: "Only an active platform administrator can approve accounts." }, { status: 403 });
+  const body = await request.json().catch(() => null);
+  if (!body?.id || !["agency","profile","payment"].includes(body.kind)) return NextResponse.json({ error: "Invalid approval request." }, { status: 400 });
+  try {
+    if (body.kind === "agency") {
+      const rows = await sql`UPDATE agencies SET status='active', membership_status='active' WHERE id=${body.id} RETURNING id`;
+      if (!rows.length) return NextResponse.json({ error: "Agency not found." }, { status: 404 });
+      return NextResponse.json({ ok: true, id: rows[0].id });
+    }
+    if (body.kind === "profile") {
+      const rows = await sql`UPDATE profiles SET status='active', updated_at=now() WHERE id=${body.id} RETURNING id, agency_id`;
+      if (!rows.length) return NextResponse.json({ error: "Member not found." }, { status: 404 });
+      if (rows[0].agency_id) await sql`UPDATE agency_memberships SET status='active' WHERE user_id=${body.id}`;
+      return NextResponse.json({ ok: true, id: rows[0].id });
+    }
+    const status = body.status === "verified" ? "verified" : "rejected";
+    const rows = await sql`UPDATE payment_transactions SET status=${status}, admin_note=${String(body.note || "").slice(0,1000)}, reviewed_at=now(), reviewed_by=${actor.id} WHERE id=${body.id} RETURNING id`;
+    if (!rows.length) return NextResponse.json({ error: "Payment not found." }, { status: 404 });
+    return NextResponse.json({ ok: true, id: rows[0].id, status });
+  } catch (error: any) { return NextResponse.json({ error: error?.message || "Approval failed." }, { status: 503 }); }
 }
