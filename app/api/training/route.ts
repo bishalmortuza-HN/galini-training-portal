@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     }
     const { data: course, error: courseError } = await admin.from("training_courses").select("id").eq("id", courseId).maybeSingle();
     if (courseError || !course) return NextResponse.json({ error: "Course not found." }, { status: 404 });
-    const rows = userIds.map(user_id => ({ course_id: courseId, user_id, agency_id: actor.profile.role === "agency_admin" ? actor.profile.agency_id : body.agency_id || null, assigned_by: actor.user.id }));
+    const rows = userIds.map((user_id: string) => ({ course_id: courseId, user_id, agency_id: actor.profile.role === "agency_admin" ? actor.profile.agency_id : body.agency_id || null, assigned_by: actor.user.id }));
     const { error } = await admin.from("training_enrollments").upsert(rows, { onConflict: "course_id,user_id" });
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ ok: true, assigned: rows.length });
