@@ -149,3 +149,35 @@ WHERE NOT EXISTS (SELECT 1 FROM training_lessons l WHERE l.course_id=c.id AND l.
 
 UPDATE training_courses SET is_published=true
 WHERE title IN ('Commercial Lines Foundations','ACORD Forms Workshop','Commercial Property Quoting Practice','General Liability Quoting Practice','Commercial Auto and Workers Compensation','Quote Review and Binding Workflow');
+
+
+-- Completion and certificate records for the Academy assessment workflow.
+CREATE TABLE IF NOT EXISTS training_lesson_completions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_id uuid NOT NULL REFERENCES training_lessons(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  completed_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (lesson_id, user_id)
+);
+CREATE TABLE IF NOT EXISTS training_certificates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  course_id uuid NOT NULL REFERENCES training_courses(id) ON DELETE CASCADE,
+  certificate_code text NOT NULL UNIQUE,
+  issued_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, course_id)
+);
+CREATE INDEX IF NOT EXISTS lesson_completions_user_idx ON training_lesson_completions(user_id);
+
+INSERT INTO training_assessments (course_id,title,instructions,passing_score,questions,is_published)
+SELECT c.id,v.title,v.instructions,80,v.questions::jsonb,true
+FROM (VALUES
+('Commercial Lines Foundations','Commercial Lines Foundations Assessment','Pass with 80%. Review account intake, exposure verification, quote comparison and binding.','[{"prompt":"What comes before market selection?","choices":["Verify applicant exposures","Promise a premium","Bind coverage"],"correct":0},{"prompt":"A quote is the same as a binder.","choices":["True","False"],"correct":1},{"prompt":"When is coverage bound?","choices":["When requested","When an authorized carrier confirms","When a quote is emailed"],"correct":1}]'),
+('ACORD Forms Workshop','ACORD Forms Workshop Assessment','Pass with 80%. Review ACORD 125, 126 and 140.','[{"prompt":"ACORD 125 captures:","choices":["Applicant and general business details","Only vehicles","Only payroll"],"correct":0},{"prompt":"ACORD 126 is commonly used for:","choices":["Property","General liability","Certificates"],"correct":1},{"prompt":"ACORD 140 captures:","choices":["Commercial property details","Driver MVRs","Workers compensation claims"],"correct":0}]'),
+('Commercial Property Quoting Practice','Commercial Property Assessment','Pass with 80%. Review property values, protection and loss details.','[{"prompt":"Building and contents values should be:","choices":["Separated and supported","Combined without detail","Guessed"],"correct":0},{"prompt":"A protection feature includes:","choices":["Central station alarm","Agent commission","Owner age"],"correct":0},{"prompt":"Loss details should include:","choices":["Date, cause, amount and corrective action","Only premium","No details"],"correct":0}]'),
+('General Liability Quoting Practice','General Liability Assessment','Pass with 80%. Review operations descriptions and classification.','[{"prompt":"Operations descriptions should explain:","choices":["Work performed, where and by whom","Only company slogan","Only premium"],"correct":0},{"prompt":"Class codes should match:","choices":["Lowest rate","Actual operations and carrier rules","Client preference"],"correct":1},{"prompt":"Subcontractor use should be:","choices":["Disclosed when material","Hidden","Assumed zero"],"correct":0}]'),
+('Commercial Auto and Workers Compensation','Commercial Auto and Workers Compensation Assessment','Pass with 80%. Review vehicle, driver and payroll exposures.','[{"prompt":"A vehicle schedule should include:","choices":["VIN, garaging and use","Only color","Only premium"],"correct":0},{"prompt":"Workers compensation payroll is organized by:","choices":["State and class","Employee favorite color","Carrier"],"correct":0},{"prompt":"If garaging details conflict, you should:","choices":["Clarify with insured","Guess","Ignore it"],"correct":0}]'),
+('Quote Review and Binding Workflow','Quote Review and Binding Assessment','Pass with 80%. Review subjectivities, bind requests and policy delivery.','[{"prompt":"A subjectivity is:","choices":["An underwriting condition","A slogan","An invoice"],"correct":0},{"prompt":"Binding is confirmed by:","choices":["Authorized carrier or wholesaler","Any client employee","The website"],"correct":0},{"prompt":"After binding, compare the binder against:","choices":["Accepted quote and requested coverage","A competitor ad","Only commission"],"correct":0}]')
+) AS v(course_title,title,instructions,questions)
+JOIN training_courses c ON c.title=v.course_title
+WHERE NOT EXISTS (SELECT 1 FROM training_assessments a WHERE a.course_id=c.id);
