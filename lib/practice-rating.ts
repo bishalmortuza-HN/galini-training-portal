@@ -23,6 +23,7 @@ export function ratePractice(line:string,x:PracticeInput){
  case "Personal Renters":case "Personal Condo":case "Personal Motorcycle":{const contents=n(x.contents_value,50000),liability=n(x.liability_limit,300000),ded=n(x.property_deductible,1000),type=line==="Personal Motorcycle"?1.25:line==="Personal Condo"?.95:1;base=250+contents/1000*.9+liability/1000*.12;add("Property and liability",1,"Contents $"+contents.toLocaleString()+" · liability $"+liability.toLocaleString());add("Product profile",type,line);add("Deductible",ded>=2500?.92:1,"$"+ded.toLocaleString());exposure=type*(ded>=2500?.92:1);break;}
  default:base=500+n(x.annual_sales,250000)/1000;
  }
+ if(x.class_code)add("Classification",1,String(x.class_code)+(x.class_description?" · "+x.class_description:"")+" · "+String(x.class_code_basis||"carrier basis")+" (verify against carrier manual; no assumed code credit)");
  const total=Math.round(base*territory*credit*loss*safeguard*exposure);
  return {currency:"USD",period:"annual",estimated_annual_premium:total,monthly_equivalent:Math.round(total/12),base_premium:Math.round(base),factors,disclaimer:"EDUCATIONAL SIMULATION ONLY. These illustrative factors are not insurer rates, a filed rating plan, an indication, a quote, an offer of insurance, or a bindable premium. Real pricing depends on carrier underwriting, state rules, forms, limits, deductibles, eligibility and verified data."};
 }
