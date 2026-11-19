@@ -6,7 +6,9 @@ type Course={id:string;title:string;description:string;category:string;level:str
 type Lesson={id:string;course_id:string;title:string;content:string;sort_order:number;completed?:boolean};
 type Enrollment={id:string;course_id:string;user_id:string;progress_percent:number;status:string;course_title:string;member_name?:string};
 type Payment={id:string;plan:string;amount_cents:number;status:string;payment_reference:string;submitted_at:string};
-type Quote={id:string;customer_name:string;line_of_business:string;status:string;created_at:string;agent_name?:string};\ntype Assessment={id:string;course_id:string;title:string;instructions:string;passing_score:number;questions:{prompt:string;choices:string[]}[]};\ntype Certificate={id:string;course_title:string;certificate_code:string;issued_at:string};
+type Quote={id:string;customer_name:string;line_of_business:string;status:string;created_at:string;agent_name?:string};
+type Assessment={id:string;course_id:string;title:string;instructions:string;passing_score:number;questions:{prompt:string;choices:string[]}[]};
+type Certificate={id:string;course_title:string;certificate_code:string;issued_at:string};
 const nice=(v?:string)=>v?v.replaceAll("_"," ").replace(/\b\w/g,x=>x.toUpperCase()):"Pending";
 const roleName=(r:string)=>r==="platform_admin"?"Site administrator":r==="agency_admin"?"Agency administrator":"Agent";
 async function api(path:string,method="GET",body?:any){const r=await fetch(path,{method,credentials:"same-origin",headers:body?{"Content-Type":"application/json"}:undefined,body:body?JSON.stringify(body):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"Request failed.");return d;}
@@ -28,7 +30,8 @@ export default function Home(){
  async function payReview(id:string,status:"verified"|"rejected"){await run(()=>api("/api/admin/approve","POST",{kind:"payment",id,status,note:"Reviewed in Galini admin panel."}),"Payment review saved.");}
  async function createQuote(e:FormEvent){e.preventDefault();await run(()=>api("/api/quote-practice","POST",{customer_name:customer,line_of_business:lob,effective_date:effective||null,risk_data:{notes:risk}}),"Practice submission created.");setCustomer("");setRisk("");}
  async function submitPayment(e:FormEvent){e.preventDefault();await run(()=>api("/api/payments","POST",{plan,payment_reference:paymentRef}),"Payment reference submitted for manual review.");setPaymentRef("");}
- async function completeLesson(id:string){await run(()=>api("/api/training","POST",{action:"complete_lesson",lesson_id:id}),"Lesson marked complete.");}\n async function submitAssessment(e:FormEvent,id:string){e.preventDefault();setBusy(true);setMessage("");try{const d=await api("/api/assessments","POST",{assessment_id:id,answers:answers[id]||{}});setMessage(d.score+"% — "+d.message);await refresh();}catch(e:any){setMessage(e.message||"Assessment failed.");}finally{setBusy(false);}}
+ async function completeLesson(id:string){await run(()=>api("/api/training","POST",{action:"complete_lesson",lesson_id:id}),"Lesson marked complete.");}
+ async function submitAssessment(e:FormEvent,id:string){e.preventDefault();setBusy(true);setMessage("");try{const d=await api("/api/assessments","POST",{assessment_id:id,answers:answers[id]||{}});setMessage(d.score+"% — "+d.message);await refresh();}catch(e:any){setMessage(e.message||"Assessment failed.");}finally{setBusy(false);}}
  async function assign(e:FormEvent){e.preventDefault();await run(()=>api("/api/training","POST",{action:"assign_course",course_id:selectedCourse,user_ids:[selectedAgent]}),"Training assigned.");}
  const tabs=[["overview","Overview"],...(admin||agencyAdmin?[["members","People & access"]]:[]),...(admin?[["agencies","Agency approvals"]]:[]),["training","Training academy"],["assessments","Assessments & certificates"],["quotes","Quote practice"],["payments","Payment status"]];
  const pendingAgencies=agencies.filter(x=>x.status==="pending").length,pendingMembers=members.filter(x=>x.status==="pending"&&x.role!=="platform_admin").length;
