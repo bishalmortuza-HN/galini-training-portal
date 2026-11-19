@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   if (!body?.id || !["agency","profile","payment"].includes(body.kind)) return NextResponse.json({ error: "Invalid approval request." }, { status: 400 });
   try {
     if (body.kind === "agency") {
-      const rows = await sql`UPDATE agencies SET status='active', membership_status='active' WHERE id=${body.id} RETURNING id`;
+      const rows = await sql`UPDATE agencies SET status='active', updated_at=now() WHERE id=${body.id} RETURNING id`;
       if (!rows.length) return NextResponse.json({ error: "Agency not found." }, { status: 404 });
       return NextResponse.json({ ok: true, id: rows[0].id });
     }
