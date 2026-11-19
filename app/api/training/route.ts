@@ -15,7 +15,7 @@ function clients() {
 async function actorFor(request: NextRequest) {
   const c = clients();
   if (!c) return { error: "Server-side Supabase configuration is incomplete.", status: 503 as const };
-  const token = request.headers.get("authorization")?.replace(/^Bearer\\s+/i, "");
+  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) return { error: "Sign in required.", status: 401 as const };
   const { data, error } = await c.auth.auth.getUser(token);
   if (error || !data.user) return { error: "Session expired. Please sign in again.", status: 401 as const };
