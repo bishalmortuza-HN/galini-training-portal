@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
         const agencyName = String(body.agencyName || "").trim();
         if (!agencyName) return NextResponse.json({ error: "Agency name is required." }, { status: 400 });
         const code = randomBytes(4).toString("hex").toUpperCase();
-        const created = await sql`INSERT INTO agencies (agency_name, agency_code, status, membership_status, plan) VALUES (${agencyName}, ${code}, 'pending', 'pending', 'Standard') RETURNING id, status`;
+        const created = await sql`INSERT INTO agencies (agency_name, agency_code, status) VALUES (${agencyName}, ${code}, 'pending') RETURNING id, status, agency_code`;
         agencyId = created[0].id; agencyStatus = created[0].status;
       } else if (!isBootstrapAdmin) {
         const code = String(body.agencyCode || "").trim().toUpperCase();
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       const status = isBootstrapAdmin ? "active" : "pending";
       const inserted = await sql`INSERT INTO profiles (email, full_name, password_hash, role, status, agency_id) VALUES (${email}, ${fullName}, ${hashPassword(password)}, ${role}, ${status}, ${agencyId}) RETURNING id, email, full_name, role, status, agent_code, agency_id`;
       user = inserted[0];
-      if (agencyId) await sql`INSERT INTO agency_memberships (agency_id, user_id, membership_role, status) VALUES (${agencyId}, ${user.id}, ${role}, 'pending') ON CONFLICT (agency_id, user_id) DO NOTHING`;
+      if (agencyId) await sql`INSERT INTO agency_memberships (agency_id, user_id, role, status) VALUES (${agencyId}, ${user.id}, ${role}, 'pending') ON CONFLICT (agency_id, user_id) DO NOTHING`;
       // Verification tokens are stored now; email delivery remains disabled until SMTP is configured.
       if (!isBootstrapAdmin) {
         const token = randomBytes(32).toString("hex");
