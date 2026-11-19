@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const courses = actor.role === "platform_admin"
       ? await sql`SELECT * FROM training_courses ORDER BY created_at DESC`
       : await sql`SELECT * FROM training_courses WHERE is_published=true ORDER BY created_at DESC`;
-    const lessons = await sql`SELECT l.* FROM training_lessons l JOIN training_courses c ON c.id=l.course_id WHERE ${actor.role === "platform_admin"} OR (c.is_published=true AND l.is_published=true) ORDER BY l.course_id,l.sort_order`;
+    const lessons = await sql`SELECT l.*, EXISTS(SELECT 1 FROM training_lesson_completions x WHERE x.lesson_id=l.id AND x.user_id=${actor.id}) AS completed FROM training_lessons l JOIN training_courses c ON c.id=l.course_id WHERE ${actor.role === "platform_admin"} OR (c.is_published=true AND l.is_published=true) ORDER BY l.course_id,l.sort_order`;
     const enrollments = actor.role === "platform_admin"
       ? await sql`SELECT e.*, c.title AS course_title, c.description AS course_description, c.category, c.duration_minutes, p.full_name AS member_name, p.email AS member_email, a.agency_name FROM training_enrollments e JOIN training_courses c ON c.id=e.course_id LEFT JOIN profiles p ON p.id=e.user_id LEFT JOIN agencies a ON a.id=e.agency_id ORDER BY e.enrolled_at DESC`
       : actor.role === "agency_admin"
