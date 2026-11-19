@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { randomBytes, createHash } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { sql } from "@/lib/db";
 import { actorFor, COOKIE, hashPassword, makeSession, sessionCookieOptions, verifyPassword } from "@/lib/auth";
 
@@ -53,12 +53,9 @@ export async function POST(request: NextRequest) {
       const status = isBootstrapAdmin ? "active" : "pending";
       const inserted = await sql`INSERT INTO profiles (email, full_name, password_hash, role, status, agency_id) VALUES (${email}, ${fullName}, ${hashPassword(password)}, ${role}, ${status}, ${agencyId}) RETURNING id, email, full_name, role, status, agent_code, agency_id`;
       user = inserted[0];
-      // profiles.agency_id is the authoritative membership link. The legacy agency_memberships.user_id FK targets app_users, so do not write profile IDs into that table.
-      // Verification tokens are stored now; email delivery remains disabled until SMTP is configured.
-      if (!isBootstrapAdmin) {
-        const token = randomBytes(32).toString("hex");
-        await sql`INSERT INTO email_verification_tokens (user_id, token_hash, expires_at) VALUES (${user.id}, ${createHash("sha256").update(token).digest("hex")}, now() + interval '24 hours')`;
-      }
+      // profiles is the active identity store. Email verification is intentionally deferred:
+      // SMTP delivery and a profile-backed verification flow are not configured yet.
+      // Do not write to the legacy email_verification_tokens table during registration.
     }
     const agency = user.agency_id ? (await sql`SELECT agency_name, agency_code, status FROM agencies WHERE id = ${user.agency_id} LIMIT 1`)[0] || null : null;
     const response = NextResponse.json({ user, agency, message: user.status === "active" ? "Welcome to Galini." : "Registration received. Your access is pending administrator approval." });
