@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
       const rows = await sql`SELECT id, email, full_name, role, status, agent_code, agency_id, password_hash FROM profiles WHERE email = ${email} LIMIT 1`;
       user = rows[0];
       if (!user || !verifyPassword(password, user.password_hash)) return NextResponse.json({ error: "Email or password is incorrect." }, { status: 401 });
+      if (user.status === "suspended") return NextResponse.json({ error: "Your Galini account is on hold. Please contact the site administrator for assistance." }, { status: 403 });
     } else {
       const fullName = String(body.fullName || "").trim();
       if (!fullName) return NextResponse.json({ error: "Your full name is required." }, { status: 400 });
