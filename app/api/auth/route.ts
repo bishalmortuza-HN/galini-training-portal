@@ -60,7 +60,8 @@ export async function POST(request: NextRequest) {
         await sql`INSERT INTO email_verification_tokens (user_id, token_hash, expires_at) VALUES (${user.id}, ${createHash("sha256").update(token).digest("hex")}, now() + interval '24 hours')`;
       }
     }
-    const response = NextResponse.json({ user, message: user.status === "active" ? "Welcome to Galini." : "Registration received. Your access is pending administrator approval." });
+    const agency = user.agency_id ? (await sql`SELECT agency_name, agency_code, status FROM agencies WHERE id = ${user.agency_id} LIMIT 1`)[0] || null : null;
+    const response = NextResponse.json({ user, agency, message: user.status === "active" ? "Welcome to Galini." : "Registration received. Your access is pending administrator approval." });
     response.cookies.set(COOKIE, makeSession(user.id), sessionCookieOptions());
     return response;
   } catch (error: any) {
