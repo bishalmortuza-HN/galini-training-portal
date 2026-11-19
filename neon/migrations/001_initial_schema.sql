@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS agencies (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS profiles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   email text NOT NULL UNIQUE,
   full_name text NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS agency_memberships (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   agency_id uuid NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   membership_role text NOT NULL DEFAULT 'agent',
   status text NOT NULL DEFAULT 'pending',
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -105,8 +105,8 @@ CREATE TABLE IF NOT EXISTS membership_payments (
   reviewed_by uuid REFERENCES users(id) ON DELETE SET NULL
 );
 
-CREATE INDEX IF NOT EXISTS users_agency_id_idx ON users(agency_id);
-CREATE INDEX IF NOT EXISTS users_role_status_idx ON users(role, status);
+CREATE INDEX IF NOT EXISTS users_agency_id_idx ON profiles(agency_id);
+CREATE INDEX IF NOT EXISTS users_role_status_idx ON profiles(role, status);
 CREATE INDEX IF NOT EXISTS agency_memberships_user_idx ON agency_memberships(user_id);
 CREATE INDEX IF NOT EXISTS training_enrollments_user_idx ON training_enrollments(user_id);
 CREATE INDEX IF NOT EXISTS training_enrollments_agency_idx ON training_enrollments(agency_id);
