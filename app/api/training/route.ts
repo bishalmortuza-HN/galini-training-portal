@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
     if (body?.action === "complete_lesson") {
       const lessonId=String(body.lesson_id||"");
-      const lesson=await sql`SELECT l.id,l.course_id FROM training_lessons l JOIN training_courses c ON c.id=l.course_id WHERE l.id=${lessonId} AND l.is_published=true`;
+      const lesson=await sql`SELECT l.id,l.course_id FROM training_lessons l JOIN training_courses c ON c.id=l.course_id WHERE l.id=${lessonId} AND l.is_published=true AND c.is_published=true`;
       if (!lesson.length) return NextResponse.json({error:"Lesson not found."},{status:404});
       const enrollment=await sql`SELECT id FROM training_enrollments WHERE course_id=${lesson[0].course_id} AND user_id=${actor.id}`;
       if (!enrollment.length) return NextResponse.json({error:"This lesson is not assigned to your account."},{status:403});
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const actor = await actorFor(request);
   if (!actor) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
-  if (actor.role !== "platform_admin") return NextResponse.json({ error: "Only a platform administrator can manually correct course progress. Agents must complete lessons to update progress." }, { status: 403 });
+  if (actor.role !== "platform_admin" || !["active","approved"].includes(actor.status)) return NextResponse.json({ error: "Only an active platform administrator can manually correct course progress. Agents must complete lessons to update progress." }, { status: 403 });
   const body = await request.json().catch(() => null);
   const id=String(body?.enrollment_id||"");
   const progress=Math.max(0,Math.min(100,Number(body?.progress_percent)||0));
