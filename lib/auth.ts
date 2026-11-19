@@ -41,6 +41,9 @@ export async function actorFor(request: NextRequest) {
   try { claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")); } catch { return null; }
   if (!claims.sub || !claims.exp || claims.exp < Date.now()) return null;
   const rows = await sql`SELECT id, email, full_name, role, status, agent_code, agency_id FROM profiles WHERE id = ${claims.sub} LIMIT 1`;
-  return rows[0] || null;
+  const actor = rows[0] || null;
+  // Suspended accounts are blocked from all protected API routes, including existing sessions.
+  if (actor?.status === "suspended") return null;
+  return actor;
 }
 export { COOKIE };
