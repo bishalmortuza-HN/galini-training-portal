@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS agency_memberships (
 
 CREATE TABLE IF NOT EXISTS email_verification_tokens (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   token_hash text NOT NULL UNIQUE,
   expires_at timestamptz NOT NULL,
   consumed_at timestamptz,
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS email_verification_tokens (
 
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   token_hash text NOT NULL UNIQUE,
   expires_at timestamptz NOT NULL,
   consumed_at timestamptz,
@@ -64,16 +64,16 @@ CREATE TABLE IF NOT EXISTS training_courses (
   duration_minutes integer NOT NULL DEFAULT 30,
   content_url text,
   is_published boolean NOT NULL DEFAULT false,
-  created_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  created_by uuid REFERENCES profiles(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS training_enrollments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   course_id uuid NOT NULL REFERENCES training_courses(id) ON DELETE CASCADE,
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   agency_id uuid REFERENCES agencies(id) ON DELETE SET NULL,
-  assigned_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  assigned_by uuid REFERENCES profiles(id) ON DELETE SET NULL,
   status text NOT NULL DEFAULT 'assigned',
   progress_percent integer NOT NULL DEFAULT 0 CHECK (progress_percent BETWEEN 0 AND 100),
   enrolled_at timestamptz NOT NULL DEFAULT now(),
@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS training_enrollments (
 
 CREATE TABLE IF NOT EXISTS training_results (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   course_name text,
   score numeric,
   status text,
@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS training_results (
 CREATE TABLE IF NOT EXISTS membership_payments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   agency_id uuid REFERENCES agencies(id) ON DELETE SET NULL,
-  user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+  user_id uuid REFERENCES profiles(id) ON DELETE SET NULL,
   plan text NOT NULL,
   amount_cents integer NOT NULL CHECK (amount_cents >= 0),
   currency text NOT NULL DEFAULT 'USD',
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS membership_payments (
   status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','verified','rejected')),
   submitted_at timestamptz NOT NULL DEFAULT now(),
   reviewed_at timestamptz,
-  reviewed_by uuid REFERENCES users(id) ON DELETE SET NULL
+  reviewed_by uuid REFERENCES profiles(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS users_agency_id_idx ON profiles(agency_id);
