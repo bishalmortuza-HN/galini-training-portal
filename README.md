@@ -1,25 +1,41 @@
 # Galini Training Portal
 
-A single role-aware workspace for platform administrators, agency administrators, and training agents.
+A unified role-based training and agency workspace for platform administrators, agency administrators, and insurance agents.
 
 ## Stack
 - Next.js 15 / React 19
 - Neon PostgreSQL via `@neondatabase/serverless`
-- Self-managed Galini authentication is the target architecture; Supabase is not part of the intended deployment.
+- Galini-managed authentication using scrypt password hashes and signed HttpOnly session cookies
+- Vercel preview deployment from the `galini-unified-portal` branch
 
-## Preview environment
-The development branch is `galini-unified-portal`. The Neon integration provisions `DATABASE_URL` and `DATABASE_URL_UNPOOLED` for this preview branch. The initial platform administrator address is configured through the preview-only `GALINI_PLATFORM_ADMIN_EMAIL` environment variable.
+## Portal modules
+- **Site administration:** agency and agent approvals, membership oversight, payment review, and training progress.
+- **Training academy:** six published commercial-insurance courses, 24 lessons, six assessments, lesson completion tracking, and course certificates.
+- **Payment status:** Standard ($10) and Premium ($50) membership records, transaction-reference submission, and manual admin verification/rejection.
+- **Quote practice:** guided five-stage applicant intake, exposure collection, coverage selection, underwriting notes, and quote/bind checklist. This is a training simulator only; it does not send live carrier submissions or bind coverage.
 
-## Database setup
-The initial PostgreSQL schema is in `neon/migrations/001_initial_schema.sql`. It creates agencies, profiles, memberships, verification/reset token tables, training courses and enrollments, training results, and payment review records. Migration `002_academy_quotes_payments.sql` adds lessons, assessments, assessment attempts, payment status tracking, and quote-practice submissions/steps. It also seeds six draft insurance training courses (not auto-published).
+## Initial administrator
+The preview-only `GALINI_PLATFORM_ADMIN_EMAIL` environment variable is the allow-listed first-admin email. The first account registered with that exact email can select **Platform administrator** during registration. Only that address receives the initial administrator role. The configured email can be changed later in Vercel preview environment settings.
 
-The migration must be applied to the Neon database before the application can use these tables. Do not apply it to production until the Galini preview has been fully tested and explicitly approved.
+## Agency onboarding
+1. Register as an agency administrator and enter the agency name.
+2. The platform administrator approves the agency and its administrator account.
+3. The agency administrator shares the generated agency invitation code with agents.
+4. Agents register using that code and wait for approval.
+5. Agency administrators assign published courses and monitor progress.
 
-## Important
-- Work only on `galini-unified-portal` until the user approves production.
+## Database
+The Neon preview schema is applied. It includes agencies, profiles, memberships, auth tokens, courses, enrollments, lessons, lesson completions, assessments, assessment attempts, certificates, payment transactions, and quote-practice submissions/steps. Six courses, 24 lessons, and six assessments are seeded and published.
+
+The read-only health endpoints are:
+- `/api/health/db` — Neon connection status
+- `/api/health/academy` — published course, lesson, and assessment counts
+
+## External services not yet connected
+- **Payoneer:** payment references and review statuses are stored, but there is no live Payoneer checkout or automatic payment verification.
+- **SMTP/email:** account verification and password-reset token tables exist, but email delivery is not active until SMTP credentials are configured. Do not describe email verification or password reset as operational yet.
+
+## Deployment safety
+- Work only on `galini-unified-portal` until the user explicitly approves production.
 - Do not modify V1 or the production `main` branch.
-- Payment records default to `pending`; no payment is considered verified until an administrator reviews it.
-- Quote practice is a training simulation. It does not submit live applications to carriers or bind insurance policies.
-- The intended academy includes ACORD form practice, commercial property and GL quoting exercises, commercial auto/workers compensation, and quote review/binding workflow.
-- Email verification and password reset require a configured SMTP provider before they can be treated as active.
-- The current portal UI/API still contains legacy Supabase calls and must be migrated to Neon before end-to-end testing. The Neon client and schema are foundation work, not a completed authentication migration.
+- The preview uses the existing Galini Vercel project and Neon integration; do not create a separate admin portal.
