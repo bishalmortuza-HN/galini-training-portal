@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       : actor.role === "agency_admin"
       ? await sql`SELECT e.*, c.title AS course_title, c.description AS course_description, c.category, c.duration_minutes, p.full_name AS member_name, p.email AS member_email, a.agency_name FROM training_enrollments e JOIN training_courses c ON c.id=e.course_id LEFT JOIN profiles p ON p.id=e.user_id LEFT JOIN agencies a ON a.id=e.agency_id WHERE e.agency_id=${actor.agency_id} ORDER BY e.enrolled_at DESC`
       : await sql`SELECT e.*, c.title AS course_title, c.description AS course_description, c.category, c.duration_minutes FROM training_enrollments e JOIN training_courses c ON c.id=e.course_id WHERE e.user_id=${actor.id} ORDER BY e.enrolled_at DESC`;
-    const results = await sql`SELECT * FROM training_results WHERE user_id=${actor.id} ORDER BY created_at DESC`;
+    const results = await sql`SELECT * FROM training_results WHERE user_id=${actor.id} ORDER BY submitted_at DESC`;
     return NextResponse.json({ courses, lessons, enrollments, results });
   } catch (error: any) { return NextResponse.json({ error: "Training database is not ready. Apply both Neon migrations.", detail: error?.message }, { status: 503 }); }
 }
