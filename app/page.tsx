@@ -1,216 +1,46 @@
 "use client";
-
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { hasSupabaseConfig, supabase } from "@/lib/supabase";
-
-type Profile = { id: string; full_name?: string | null; email?: string | null; role?: string | null; agent_code?: string | null; agency_id?: string | null; status?: string | null };
-type Agency = { id: string; agency_name?: string | null; agency_code?: string | null; status?: string | null; membership_status?: string | null; plan?: string | null };
-type Result = { id: string; course_name?: string | null; score?: number | null; status?: string | null; created_at?: string | null };
-type Course = { id: string; title: string; description?: string; category?: string; level?: string; duration_minutes?: number; content_url?: string | null; is_published: boolean };
-type Enrollment = { id: string; course_id: string; user_id: string; agency_id?: string | null; agency_name?: string | null; status: string; progress_percent: number; training_courses?: Course; member?: { full_name?: string | null; email?: string | null; agent_code?: string | null } | null; };
-
-const labelRole = (role?: string | null) => role === "platform_admin" ? "Platform administrator" : role === "agency_admin" ? "Agency administrator" : "Training agent";
-const nice = (value?: string | null) => value ? value.replaceAll("_", " ").replace(/\b\w/g, c => c.toUpperCase()) : "Pending";
-
-export default function Home() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [agency, setAgency] = useState<Agency | null>(null);
-  const [agencies, setAgencies] = useState<Agency[]>([]);
-  const [people, setPeople] = useState<Profile[]>([]);
-  const [results, setResults] = useState<Result[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-  const [courseTitle, setCourseTitle] = useState("");
-  const [courseDescription, setCourseDescription] = useState("");
-  const [courseCategory, setCourseCategory] = useState("General");
-  const [courseLevel, setCourseLevel] = useState("All levels");
-  const [courseDuration, setCourseDuration] = useState("30");
-  const [courseUrl, setCourseUrl] = useState("");
-  const [coursePublished, setCoursePublished] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState("");
-  const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
-  const [tab, setTab] = useState("overview");
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  const [sessionReady, setSessionReady] = useState(false);
-
-  const loadWorkspace = useCallback(async (userId: string) => {
-    if (!supabase) return;
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
-    if (token) {
-      const trainingResponse = await fetch("/api/training", { headers: { Authorization: `Bearer ${token}` } });
-      const trainingData = await trainingResponse.json().catch(() => ({}));
-      if (trainingResponse.ok) {
-        setCourses(trainingData.courses || []);
-        setEnrollments(trainingData.enrollments || []);
-      } else setMessage(trainingData.error || "Training could not be loaded.");
-    }
-    const p = await supabase.from("profiles").select("id,full_name,email,role,agent_code,agency_id,status").eq("id", userId).maybeSingle();
-    if (p.error) { setMessage("Signed in, but the profile could not be loaded: " + p.error.message); return; }
-    const current = p.data as Profile | null;
-    setProfile(current);
-    if (!current) { setMessage("Your account is signed in, but no Galini profile exists yet. Please contact the site administrator."); return; }
-    if (current.agency_id) {
-      const a = await supabase.from("agencies").select("id,agency_name,agency_code,status,membership_status,plan").eq("id", current.agency_id).maybeSingle();
-      setAgency((a.data as Agency | null) || null);
-    }
-    if (current.role === "platform_admin") {
-      const [a, u] = await Promise.all([
-        supabase.from("agencies").select("id,agency_name,agency_code,status,membership_status,plan").order("agency_name"),
-        supabase.from("profiles").select("id,full_name,email,role,agent_code,agency_id,status").order("full_name")
-      ]);
-      setAgencies((a.data as Agency[]) || []);
-      setPeople((u.data as Profile[]) || []);
-    } else if (current.role === "agency_admin" && current.agency_id) {
-      const u = await supabase.from("profiles").select("id,full_name,email,role,agent_code,agency_id,status").eq("agency_id", current.agency_id).order("full_name");
-      setPeople((u.data as Profile[]) || []);
-    } else {
-      const r = await supabase.from("training_results").select("id,course_name,score,status,created_at").eq("user_id", userId).order("created_at", { ascending: false });
-      setResults((r.data as Result[]) || []);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!supabase) { setSessionReady(true); return; }
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.user) void loadWorkspace(data.session.user.id);
-      setSessionReady(true);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) void loadWorkspace(session.user.id);
-      else { setProfile(null); setAgency(null); setAgencies([]); setPeople([]); setResults([]); }
-    });
-    return () => listener.subscription.unsubscribe();
-  }, [loadWorkspace]);
-
-  const pendingAgencies = useMemo(() => agencies.filter(a => (a.status || a.membership_status) === "pending").length, [agencies]);
-  const pendingPeople = useMemo(() => people.filter(p => p.status === "pending" && p.role !== "platform_admin").length, [people]);
-
-  async function authenticate(e: FormEvent) {
-    e.preventDefault(); if (!supabase) return;
-    setBusy(true); setMessage("");
-    const response = mode === "signin"
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } });
-    if (response.error) setMessage(response.error.message);
-    else if (mode === "signup" && !response.data.session) setMessage("Registration received. Check your email to verify your account, then sign in.");
-    else setMessage(mode === "signup" ? "Account created. Your Galini access may require administrator approval." : "Welcome back.");
-    setBusy(false);
-  }
-
-  async function signOut() { await supabase?.auth.signOut(); setProfile(null); setMessage("You have signed out."); }
-  async function trainingRequest(method: "POST" | "PATCH", body: Record<string, unknown>) {
-    const { data } = await supabase?.auth.getSession() || { data: { session: null } };
-    const token = data.session?.access_token;
-    if (!token) { setMessage("Please sign in again."); return false; }
-    setBusy(true);
-    const response = await fetch("/api/training", { method, headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
-    const payload = await response.json().catch(() => ({}));
-    setMessage(response.ok ? "Training updated successfully." : (payload.error || "Training update failed."));
-    if (response.ok && profile) await loadWorkspace(profile.id);
-    setBusy(false);
-    return response.ok;
-  }
-  async function createCourse(e: FormEvent) {
-    e.preventDefault();
-    const ok = await trainingRequest("POST", { action: "create_course", title: courseTitle, description: courseDescription, category: courseCategory, level: courseLevel, duration_minutes: Number(courseDuration), content_url: courseUrl || null, is_published: coursePublished });
-    if (ok) { setCourseTitle(""); setCourseDescription(""); setCourseUrl(""); setCoursePublished(false); }
-  }
-  async function assignCourse() {
-    if (!selectedCourse || !selectedAgents.length) { setMessage("Select a course and at least one agent."); return; }
-    const ok = await trainingRequest("POST", { action: "assign_course", course_id: selectedCourse, user_ids: selectedAgents });
-    if (ok) setSelectedAgents([]);
-  }
-  async function updateProgress(enrollment: Enrollment, progress: number) {
-    await trainingRequest("PATCH", { enrollment_id: enrollment.id, progress_percent: progress });
-  }
-  async function approve(kind: "agency" | "profile", id: string) {
-    const { data } = await supabase?.auth.getSession() || { data: { session: null } };
-    const token = data.session?.access_token;
-    if (!token) { setMessage("Please sign in again."); return; }
-    setBusy(true); setMessage("");
-    const response = await fetch("/api/admin/approve", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ kind, id }) });
-    const payload = await response.json();
-    setMessage(response.ok ? "Approval saved." : (payload.error || "Approval could not be saved."));
-    if (response.ok && profile) await loadWorkspace(profile.id);
-    setBusy(false);
-  }
-
-  if (!sessionReady) return <main className="center"><div className="loader" />Loading Galini…</main>;
-  if (!profile) return <main className="authShell">
-    <section className="authIntro"><div className="brand"><span className="brandMark">G</span> GALINI <span className="brandSub">LEARNING</span></div><div className="introCopy"><p className="eyebrow">ONE PORTAL. EVERY STEP FORWARD.</p><h1>Build stronger agencies through better training.</h1><p>One secure workspace for agency approvals, memberships, learning, and progress tracking.</p></div><div className="introFoot">Galini Training Portal · {new Date().getFullYear()}</div></section>
-    <section className="authPanel"><div className="authCard"><p className="eyebrow">YOUR TRAINING WORKSPACE</p><h2>{mode === "signin" ? "Welcome back" : "Create your account"}</h2><p className="muted">Sign in to continue to your Galini dashboard.</p>
-      {!hasSupabaseConfig && <div className="notice error">Supabase is not configured for this deployment. Add the existing Galini Supabase URL and anon key to the Vercel project environment.</div>}
-      <form onSubmit={authenticate} className="form">
-        {mode === "signup" && <label>Full name<input value={fullName} onChange={e => setFullName(e.target.value)} required placeholder="Your full name" /></label>}
-        <label>Email address<input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@agency.com" /></label>
-        <label>Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} placeholder="Enter your password" /></label>
-        <button className="primary full" disabled={busy || !hasSupabaseConfig}>{busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}</button>
-      </form>
-      <p className="switchMode">{mode === "signin" ? "New to Galini?" : "Already registered?"} <button onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setMessage(""); }}>{mode === "signin" ? "Create an account" : "Sign in"}</button></p>
-      {message && <div className="notice">{message}</div>}
-    </div></section>
-  </main>;
-
-  const isAdmin = profile.role === "platform_admin";
-  const isAgency = profile.role === "agency_admin";
-  const title = tab === "overview" ? "Overview" : tab === "members" ? "People & access" : tab === "agencies" ? "Agency approvals" : tab === "training" ? "Training center" : tab === "payments" ? "Payments" : "My learning";
-  return <main className="appShell">
-    <aside className="sidebar"><div className="brand"><span className="brandMark">G</span><span>GALINI<small>TRAINING PORTAL</small></span></div><div className="workspaceTag">WORKSPACE</div><nav>
-      <button className={tab === "overview" ? "navItem active" : "navItem"} onClick={() => setTab("overview")}>▦ <span>Overview</span></button>
-      {(isAdmin || isAgency) && <button className={tab === "members" ? "navItem active" : "navItem"} onClick={() => setTab("members")}>♙ <span>People & access</span></button>}
-      {isAdmin && <button className={tab === "agencies" ? "navItem active" : "navItem"} onClick={() => setTab("agencies")}>▤ <span>Agencies</span>{pendingAgencies > 0 && <b>{pendingAgencies}</b>}</button>}
-      <button className={tab === "training" ? "navItem active" : "navItem"} onClick={() => setTab("training")}>▣ <span>Training center</span></button>
-      {isAdmin && <button className={tab === "payments" ? "navItem active" : "navItem"} onClick={() => setTab("payments")}>＄ <span>Payments</span></button>}
-    </nav><div className="sideBottom"><div className="helpBox"><strong>Need help?</strong><p>Contact your Galini portal administrator for account or training support.</p></div><button className="signout" onClick={signOut}>↪ Sign out</button></div></aside>
-    <section className="mainArea"><header className="topbar"><div><span className="crumb">GALINI /</span> {title}</div><div className="userPill"><span className="avatar">{(profile.full_name || profile.email || "G").slice(0,1).toUpperCase()}</span><span><strong>{profile.full_name || profile.email}</strong><small>{labelRole(profile.role)}</small></span></div></header>
-      <div className="content"><div className="pageHeading"><div><p className="eyebrow">YOUR WORKSPACE</p><h1>{isAdmin ? "Good to see you, Admin." : `Welcome, ${profile.full_name?.split(" ")[0] || "there"}.`}</h1><p className="muted">{isAdmin ? "Manage Galini memberships, agency access, and training activity from one place." : "Your training and agency activity, all in one place."}</p></div><span className={profile.status === "active" || profile.status === "approved" ? "status active" : "status pending"}>{nice(profile.status)}</span></div>
-      {message && <div className="notice">{message}</div>}
-      {profile.status !== "active" && profile.status !== "approved" && <div className="notice warning">Your account is awaiting approval. Some portal features may remain unavailable until an administrator activates your access.</div>}
-      {tab === "overview" && <>
-        <div className="statGrid">
-          <article className="statCard"><span className="statIcon violet">▤</span><p>{isAdmin ? "Agencies" : "Agency"}</p><strong>{isAdmin ? agencies.length : agency?.agency_name || "Not assigned"}</strong><small>{isAdmin ? `${pendingAgencies} awaiting approval` : agency?.agency_code || "Contact your administrator"}</small></article>
-          <article className="statCard"><span className="statIcon blue">♙</span><p>{isAdmin || isAgency ? "People" : "My status"}</p><strong>{isAdmin || isAgency ? people.length : nice(profile.status)}</strong><small>{isAdmin || isAgency ? `${pendingPeople} pending approval` : "Account access"}</small></article>
-          <article className="statCard"><span className="statIcon green">✓</span><p>Training records</p><strong>{isAdmin || isAgency ? enrollments.length : results.length}</strong><small>{isAdmin || isAgency ? "Progress overview" : "Your recorded activity"}</small></article>
-          <article className="statCard"><span className="statIcon amber">◇</span><p>Membership plan</p><strong>{agency?.plan || "—"}</strong><small>{nice(agency?.membership_status || agency?.status)}</small></article>
-        </div>
-        {isAdmin && <section className="panel"><div className="panelHead"><div><h3>Needs your attention</h3><p>Review new access requests.</p></div><span className="count">{pendingAgencies + pendingPeople} pending</span></div><div className="attentionGrid"><button onClick={() => setTab("agencies")}><span className="attentionIcon">▤</span><span><strong>{pendingAgencies} agencies</strong><small>Waiting for approval</small></span><b>→</b></button><button onClick={() => setTab("members")}><span className="attentionIcon">♙</span><span><strong>{pendingPeople} people</strong><small>Waiting for approval</small></span><b>→</b></button></div></section>}
-        {(isAgency || isAdmin) && <section className="panel"><div className="panelHead"><div><h3>{isAdmin ? "Recently registered agencies" : "Your agency team"}</h3><p>{isAdmin ? "Agency membership and access status." : "People connected to your agency."}</p></div><button className="textButton" onClick={() => setTab(isAdmin ? "agencies" : "members")}>View all →</button></div><div className="tableWrap"><table><thead><tr><th>{isAdmin ? "Agency" : "Name"}</th><th>Code / email</th><th>Status</th></tr></thead><tbody>{(isAdmin ? agencies.slice(0,5) : people.slice(0,5)).map((item: any) => <tr key={item.id}><td>{item.agency_name || item.full_name || "—"}</td><td>{item.agency_code || item.email || "—"}</td><td><span className="miniStatus">{nice(item.status || item.membership_status)}</span></td></tr>)}{(isAdmin ? agencies : people).length === 0 && <tr><td colSpan={3} className="empty">No records found yet.</td></tr>}</tbody></table></div></section>}
-        {!isAdmin && !isAgency && <section className="panel"><div className="panelHead"><div><h3>Continue your learning</h3><p>Your completed and in-progress training records.</p></div><button className="textButton" onClick={() => setTab("learning")}>View activity →</button></div><div className="emptyState">Your training activity will appear here as you complete courses assigned by your agency.</div></section>}
-      </>}
-      {tab === "agencies" && isAdmin && <section className="panel"><div className="panelHead"><div><h3>Agency membership requests</h3><p>Approve agencies to grant access to the Galini training workspace.</p></div></div><div className="tableWrap"><table><thead><tr><th>Agency</th><th>Agency code</th><th>Plan</th><th>Status</th><th>Action</th></tr></thead><tbody>{agencies.map(a => <tr key={a.id}><td>{a.agency_name || "Unnamed agency"}</td><td>{a.agency_code || "—"}</td><td>{a.plan || "—"}</td><td><span className="miniStatus">{nice(a.status || a.membership_status)}</span></td><td>{(a.status || a.membership_status) === "pending" ? <button className="smallPrimary" disabled={busy} onClick={() => approve("agency",a.id)}>Approve</button> : "—"}</td></tr>)}{agencies.length === 0 && <tr><td colSpan={5} className="empty">No agencies found.</td></tr>}</tbody></table></div></section>}
-      {tab === "members" && (isAdmin || isAgency) && <section className="panel"><div className="panelHead"><div><h3>{isAdmin ? "All portal members" : "Agency team members"}</h3><p>{isAdmin ? "Review account access and agent membership." : "Monitor agents connected to your agency."}</p></div></div><div className="tableWrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Agent code</th><th>Status</th><th>Action</th></tr></thead><tbody>{people.map(p => <tr key={p.id}><td>{p.full_name || "—"}</td><td>{p.email || "—"}</td><td>{nice(p.role)}</td><td>{p.agent_code || "—"}</td><td><span className="miniStatus">{nice(p.status)}</span></td><td>{isAdmin && p.status === "pending" && p.role !== "platform_admin" ? <button className="smallPrimary" disabled={busy} onClick={() => approve("profile",p.id)}>Approve</button> : "—"}</td></tr>)}{people.length === 0 && <tr><td colSpan={6} className="empty">No members found.</td></tr>}</tbody></table></div></section>}
-      {tab === "training" && <section className="trainingPage">
-        {(isAdmin || isAgency) && <section className="panel"><div className="panelHead"><div><h3>{isAdmin ? "Create a training course" : "Assign training to your agents"}</h3><p>{isAdmin ? "Build your Galini course library. Publish when the course content is ready." : "Choose a course and assign it to members of your agency."}</p></div></div>
-          {isAdmin ? <form className="courseForm" onSubmit={createCourse}>
-            <label>Course title<input required value={courseTitle} onChange={e=>setCourseTitle(e.target.value)} placeholder="Enter course title"/></label>
-            <label>Category<input value={courseCategory} onChange={e=>setCourseCategory(e.target.value)} placeholder="e.g. Compliance"/></label>
-            <label>Level<select value={courseLevel} onChange={e=>setCourseLevel(e.target.value)}><option>All levels</option><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></label>
-            <label>Duration (minutes)<input type="number" min="1" value={courseDuration} onChange={e=>setCourseDuration(e.target.value)}/></label>
-            <label className="wide">Description<textarea value={courseDescription} onChange={e=>setCourseDescription(e.target.value)} rows={3} placeholder="Describe the learning objectives and course content."/></label>
-            <label className="wide">Course content URL<input type="url" value={courseUrl} onChange={e=>setCourseUrl(e.target.value)} placeholder="https://..."/></label>
-            <label className="publishToggle"><input type="checkbox" checked={coursePublished} onChange={e=>setCoursePublished(e.target.checked)}/> Publish this course now</label>
-            <button className="primary" disabled={busy}>{busy ? "Saving…" : "Create course"}</button>
-          </form> : <div className="assignForm">
-            <label>Course<select value={selectedCourse} onChange={e=>setSelectedCourse(e.target.value)}><option value="">Select a published course</option>{courses.filter(x=>x.is_published).map(x=><option key={x.id} value={x.id}>{x.title}</option>)}</select></label>
-            <label>Agents<select multiple value={selectedAgents} onChange={e=>setSelectedAgents(Array.from(e.target.selectedOptions,o=>o.value))}>{people.filter(p=>p.role==="agent" && p.status==="active").map(p=><option key={p.id} value={p.id}>{p.full_name || p.email}</option>)}</select></label>
-            <button className="primary" disabled={busy || !selectedCourse || !selectedAgents.length} onClick={assignCourse}>Assign course to selected agents</button>
-          </div>}
-        </section>}
-        <section className="panel"><div className="panelHead"><div><h3>{isAdmin ? "Course library" : isAgency ? "Agency training progress" : "My assigned training"}</h3><p>{isAdmin ? "All courses and publication status." : isAgency ? "Track assigned learning across your agency." : "Open your course materials and update your progress as you learn."}</p></div><span className="count">{isAdmin ? courses.length + " courses" : enrollments.length + " assignments"}</span></div>
-          {isAdmin ? <div className="courseGrid">{courses.map(course=><article className="courseCard" key={course.id}><div className="courseMeta"><span>{course.category || "General"}</span><span className={course.is_published ? "published" : "draft"}>{course.is_published ? "Published" : "Draft"}</span></div><h4>{course.title}</h4><p>{course.description || "No course description added yet."}</p><small>{course.level || "All levels"} · {course.duration_minutes || 30} min</small>{course.content_url && <a href={course.content_url} target="_blank" rel="noreferrer">Open course content ↗</a>}</article>)}{courses.length===0 && <div className="emptyState">Your course library is empty. Create a course above and publish it when its learning materials are ready.</div>}</div>
-          : <div className="enrollmentList">{enrollments.map(enrollment=><article className="enrollmentCard" key={enrollment.id}><div className="enrollmentTop"><div><span className="courseCategory">{enrollment.training_courses?.category || "Training"}</span><h4>{enrollment.training_courses?.title || "Assigned course"}</h4><p>{enrollment.training_courses?.description || "Course details will appear here."}</p></div><strong>{enrollment.progress_percent || 0}%</strong></div><div className="progressTrack"><span style={{width:(enrollment.progress_percent || 0)+"%"}}/></div><div className="enrollmentBottom"><small>{nice(enrollment.status)} · {enrollment.training_courses?.duration_minutes || 30} min</small><div>{enrollment.training_courses?.content_url && <a href={enrollment.training_courses.content_url} target="_blank" rel="noreferrer">Open materials ↗</a>}<select aria-label="Update course progress" value={String(enrollment.progress_percent || 0)} disabled={busy} onChange={e=>updateProgress(enrollment,Number(e.target.value))}><option value="0">Not started</option><option value="25">25% complete</option><option value="50">50% complete</option><option value="75">75% complete</option><option value="100">Completed</option></select></div></div></article>)}{enrollments.length===0 && <div className="emptyState">{isAgency ? "No training has been assigned to your agency yet." : "No courses have been assigned to you yet. Your agency administrator will assign training here."}</div>}</div>}
-        </section>
-      </section>}
-      {tab === "training" && isAdmin && <section className="panel"><div className="panelHead"><div><h3>Training progress across Galini</h3><p>Review assignments and completion status for every agent.</p></div><span className="count">{enrollments.length} assignments</span></div><div className="tableWrap"><table><thead><tr><th>Agent</th><th>Course</th><th>Agency</th><th>Progress</th><th>Status</th></tr></thead><tbody>{enrollments.map(enrollment=><tr key={enrollment.id}><td>{enrollment.member?.full_name || enrollment.member?.email || enrollment.user_id.slice(0,8)}</td><td>{enrollment.training_courses?.title || "Course"}</td><td>{enrollment.agency_name || "—"}</td><td><div className="progressTrack"><span style={{width:(enrollment.progress_percent || 0)+"%"}}/></div>{enrollment.progress_percent || 0}%</td><td>{nice(enrollment.status)}</td></tr>)}{enrollments.length===0 && <tr><td colSpan={5} className="empty">No training assignments have been created yet.</td></tr>}</tbody></table></div></section>}
-      {tab === "learning" && !isAdmin && !isAgency && <section className="panel"><div className="panelHead"><div><h3>My training results</h3><p>Recorded assessment results for your account.</p></div></div><div className="tableWrap"><table><thead><tr><th>Course</th><th>Score</th><th>Status</th><th>Date</th></tr></thead><tbody>{results.map(r=><tr key={r.id}><td>{r.course_name || "Training activity"}</td><td>{r.score ?? "—"}</td><td>{nice(r.status)}</td><td>{r.created_at ? new Date(r.created_at).toLocaleDateString() : "—"}</td></tr>)}{results.length===0 && <tr><td colSpan={4} className="empty">No assessment results yet.</td></tr>}</tbody></table></div></section>}
-      {tab === "payments" && isAdmin && <section className="panel"><div className="panelHead"><div><h3>Membership payments</h3><p>Payment review will appear here once the Galini payment records table and payment workflow are confirmed.</p></div></div><div className="emptyState">No payment records are connected yet. This area is intentionally read-only until the payment data source is verified; no payment will be marked paid automatically.</div></section>}
-      <footer className="footer">Galini Training Portal <span>Secure role-based workspace</span></footer></div>
-    </section>
-  </main>;
+import {FormEvent,useCallback,useEffect,useMemo,useState} from "react";
+type User={id:string;email:string;full_name:string;role:string;status:string;agency_id:string|null;agent_code?:string|null};
+type Agency={id:string;agency_name:string;agency_code:string;status:string;plan?:string};
+type Course={id:string;title:string;description:string;category:string;level:string;duration_minutes:number;is_published:boolean};
+type Lesson={id:string;course_id:string;title:string;content:string;sort_order:number};
+type Enrollment={id:string;course_id:string;user_id:string;progress_percent:number;status:string;course_title:string;member_name?:string};
+type Payment={id:string;plan:string;amount_cents:number;status:string;payment_reference:string;submitted_at:string};
+type Quote={id:string;customer_name:string;line_of_business:string;status:string;created_at:string;agent_name?:string};
+const nice=(v?:string)=>v?v.replaceAll("_"," ").replace(/\b\w/g,x=>x.toUpperCase()):"Pending";
+const roleName=(r:string)=>r==="platform_admin"?"Site administrator":r==="agency_admin"?"Agency administrator":"Agent";
+async function api(path:string,method="GET",body?:any){const r=await fetch(path,{method,credentials:"same-origin",headers:body?{"Content-Type":"application/json"}:undefined,body:body?JSON.stringify(body):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"Request failed.");return d;}
+export default function Home(){
+ const [user,setUser]=useState<User|null>(null),[mode,setMode]=useState<"login"|"register">("login"),[accountType,setAccountType]=useState("agency");
+ const [email,setEmail]=useState(""),[password,setPassword]=useState(""),[fullName,setFullName]=useState(""),[agencyName,setAgencyName]=useState(""),[agencyCode,setAgencyCode]=useState("");
+ const [tab,setTab]=useState("overview"),[message,setMessage]=useState(""),[busy,setBusy]=useState(false);
+ const [agencies,setAgencies]=useState<Agency[]>([]),[members,setMembers]=useState<User[]>([]),[courses,setCourses]=useState<Course[]>([]),[lessons,setLessons]=useState<Lesson[]>([]),[enrollments,setEnrollments]=useState<Enrollment[]>([]),[payments,setPayments]=useState<Payment[]>([]),[quotes,setQuotes]=useState<Quote[]>([]);
+ const [plan,setPlan]=useState("Standard"),[paymentRef,setPaymentRef]=useState(""),[customer,setCustomer]=useState(""),[lob,setLob]=useState("General Liability"),[effective,setEffective]=useState(""),[risk,setRisk]=useState("");
+ const [selectedCourse,setSelectedCourse]=useState(""),[selectedAgent,setSelectedAgent]=useState("");
+ const admin=user?.role==="platform_admin",agencyAdmin=user?.role==="agency_admin";
+ const refresh=useCallback(async()=>{if(!user)return;const jobs=await Promise.allSettled([api("/api/workspace"),api("/api/training"),api("/api/payments"),api("/api/quote-practice")]);if(jobs[0].status==="fulfilled"){setAgencies(jobs[0].value.agencies||[]);setMembers(jobs[0].value.members||[]);}if(jobs[1].status==="fulfilled"){setCourses(jobs[1].value.courses||[]);setLessons(jobs[1].value.lessons||[]);setEnrollments(jobs[1].value.enrollments||[]);}if(jobs[2].status==="fulfilled")setPayments(jobs[2].value.payments||[]);if(jobs[3].status==="fulfilled")setQuotes(jobs[3].value.submissions||[]);const fail=jobs.find(x=>x.status==="rejected") as PromiseRejectedResult|undefined;if(fail)setMessage(fail.reason?.message||"Some workspace data could not be loaded.");},[user]);
+ useEffect(()=>{api("/api/auth").then(d=>setUser(d.user)).catch(()=>{});},[]);
+ useEffect(()=>{if(user)void refresh();},[user,refresh]);
+ const run=async(fn:()=>Promise<any>,success:string)=>{setBusy(true);setMessage("");try{await fn();setMessage(success);await refresh();}catch(e:any){setMessage(e.message||"Action failed.");}finally{setBusy(false);}};
+ async function auth(e:FormEvent){e.preventDefault();await run(async()=>{const d=await api("/api/auth","POST",{action:mode==="login"?"login":"register",email,password,fullName,accountType,agencyName,agencyCode});setUser(d.user);},mode==="login"?"Signed in.":"Account created.");}
+ async function logout(){await api("/api/auth","DELETE");setUser(null);setTab("overview");setMessage("Signed out.");}
+ async function approve(kind:"agency"|"profile",id:string){await run(()=>api("/api/admin/approve","POST",{kind,id}),"Approval saved.");}
+ async function payReview(id:string,status:"verified"|"rejected"){await run(()=>api("/api/admin/approve","POST",{kind:"payment",id,status,note:"Reviewed in Galini admin panel."}),"Payment review saved.");}
+ async function createQuote(e:FormEvent){e.preventDefault();await run(()=>api("/api/quote-practice","POST",{customer_name:customer,line_of_business:lob,effective_date:effective||null,risk_data:{notes:risk}}),"Practice submission created.");setCustomer("");setRisk("");}
+ async function submitPayment(e:FormEvent){e.preventDefault();await run(()=>api("/api/payments","POST",{plan,payment_reference:paymentRef}),"Payment reference submitted for manual review.");setPaymentRef("");}
+ async function completeLesson(id:string){await run(()=>api("/api/training","POST",{action:"complete_lesson",lesson_id:id}),"Lesson marked complete.");}
+ async function assign(e:FormEvent){e.preventDefault();await run(()=>api("/api/training","POST",{action:"assign_course",course_id:selectedCourse,user_ids:[selectedAgent]}),"Training assigned.");}
+ const tabs=[["overview","Overview"],...(admin||agencyAdmin?[["members","People & access"]]:[]),...(admin?[["agencies","Agency approvals"]]:[]),["training","Training academy"],["quotes","Quote practice"],["payments","Payment status"]];
+ const pendingAgencies=agencies.filter(x=>x.status==="pending").length,pendingMembers=members.filter(x=>x.status==="pending"&&x.role!=="platform_admin").length;
+ const myEnrollments=useMemo(()=>enrollments.filter(x=>x.user_id===user?.id),[enrollments,user]);
+ if(!user)return <main className="authShell"><section className="authIntro"><div className="brand"><span className="brandMark">G</span> GALINI <span className="brandSub">LEARNING</span></div><div className="introCopy"><p className="eyebrow">ONE PORTAL. EVERY STEP FORWARD.</p><h1>Build stronger agencies through better training.</h1><p>Training academy, agency management, membership payments and insurance quote practice in one secure workspace.</p></div><div className="introFoot">Galini Training Portal · {new Date().getFullYear()}</div></section><section className="authPanel"><div className="authCard"><p className="eyebrow">GALINI WORKSPACE</p><h2>{mode==="login"?"Welcome back":"Create your account"}</h2><p className="muted">{mode==="login"?"Sign in to continue.":"Register your agency or join an existing agency."}</p><form className="form" onSubmit={auth}>{mode==="register"&&<><label>Full name<input required value={fullName} onChange={e=>setFullName(e.target.value)} placeholder="Your full name"/></label><label>Account type<select value={accountType} onChange={e=>setAccountType(e.target.value)}><option value="agency">Agency administrator</option><option value="agent">Agent joining an agency</option></select></label>{accountType==="agency"?<label>Agency name<input required value={agencyName} onChange={e=>setAgencyName(e.target.value)} placeholder="Your agency name"/></label>:<label>Agency invitation code<input required value={agencyCode} onChange={e=>setAgencyCode(e.target.value.toUpperCase())} placeholder="Ask your agency administrator"/></label>}</>}<label>Email address<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@agency.com"/></label><label>Password<input type="password" required minLength={10} value={password} onChange={e=>setPassword(e.target.value)} placeholder="At least 10 characters"/></label><button className="primary full" disabled={busy}>{busy?"Please wait…":mode==="login"?"Sign in":"Create account"}</button></form><p className="switchMode">{mode==="login"?"New to Galini?":"Already registered?"} <button onClick={()=>{setMode(mode==="login"?"register":"login");setMessage("");}}>{mode==="login"?"Create an account":"Sign in"}</button></p>{message&&<div className="notice">{message}</div>}<p className="muted" style={{fontSize:12,marginTop:14}}>New agency and agent accounts require administrator approval. Email delivery and online payment processing are not enabled yet.</p></div></section></main>;
+ const title=tabs.find(x=>x[0]===tab)?.[1]||"Overview";
+ return <main className="appShell"><aside className="sidebar"><div className="brand"><span className="brandMark">G</span><span>GALINI<small>TRAINING PORTAL</small></span></div><div className="workspaceTag">WORKSPACE</div><nav>{tabs.map(([id,label])=><button key={id} className={tab===id?"navItem active":"navItem"} onClick={()=>setTab(id)}><span>{label}</span>{id==="agencies"&&pendingAgencies>0?<b>{pendingAgencies}</b>:null}</button>)}</nav><div className="sideBottom"><div className="helpBox"><strong>{roleName(user.role)}</strong><p>{user.email}</p></div><button className="signout" onClick={logout}>↪ Sign out</button></div></aside><section className="mainArea"><header className="topbar"><div><span className="crumb">GALINI /</span> {title}</div><div className="userPill"><span className="avatar">{(user.full_name||"G").slice(0,1).toUpperCase()}</span><span><strong>{user.full_name}</strong><small>{roleName(user.role)}</small></span></div></header><div className="content"><div className="pageHeading"><div><p className="eyebrow">YOUR WORKSPACE</p><h1>{admin?"Site administration":"Welcome, "+user.full_name.split(" ")[0]+"."}</h1><p className="muted">Everything Galini in one portal.</p></div><span className={user.status==="active"||user.status==="approved"?"status active":"status pending"}>{nice(user.status)}</span></div>{message&&<div className="notice">{message}</div>}{user.status!=="active"&&user.status!=="approved"&&<div className="notice warning">Your account is awaiting approval. Your administrator must activate access before you can use all training features.</div>}
+ {tab==="overview"&&<><div className="statGrid"><article className="statCard"><p>Agencies</p><strong>{admin?agencies.length:agencies[0]?.agency_name||"Not assigned"}</strong><small>{pendingAgencies} pending approval</small></article><article className="statCard"><p>People</p><strong>{members.length}</strong><small>{pendingMembers} pending approval</small></article><article className="statCard"><p>Training assignments</p><strong>{enrollments.length}</strong><small>{enrollments.filter(x=>x.status==="completed").length} completed</small></article><article className="statCard"><p>Payment records</p><strong>{payments.length}</strong><small>{payments.filter(x=>x.status!=="verified").length} awaiting review</small></article></div><section className="panel"><div className="panelHead"><div><h3>Quick access</h3><p>Choose a workspace to continue.</p></div></div><div className="attentionGrid">{tabs.filter(x=>x[0]!=="overview").map(([id,label])=><button key={id} onClick={()=>setTab(id)}><span><strong>{label}</strong><small>Open {label.toLowerCase()}</small></span><b>→</b></button>)}</div></section></>}
+ {tab==="agencies"&&admin&&<section className="panel"><div className="panelHead"><div><h3>Agency approvals</h3><p>Review agency registrations and membership access.</p></div></div><div className="tableWrap"><table><thead><tr><th>Agency</th><th>Agency code</th><th>Plan</th><th>Status</th><th>Action</th></tr></thead><tbody>{agencies.map(a=><tr key={a.id}><td>{a.agency_name}</td><td>{a.agency_code}</td><td>{a.plan||"—"}</td><td>{nice(a.status)}</td><td>{a.status==="pending"?<button className="smallPrimary" disabled={busy} onClick={()=>approve("agency",a.id)}>Approve</button>:"—"}</td></tr>)}{!agencies.length&&<tr><td colSpan={5} className="empty">No agency requests.</td></tr>}</tbody></table></div></section>}
+ {tab==="members"&&(admin||agencyAdmin)&&<section className="panel"><div className="panelHead"><div><h3>{admin?"All portal members":"Your agency members"}</h3><p>Approve agent access and track your team.</p></div></div><div className="tableWrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Action</th></tr></thead><tbody>{members.map(p=><tr key={p.id}><td>{p.full_name}</td><td>{p.email}</td><td>{roleName(p.role)}</td><td>{nice(p.status)}</td><td>{admin&&p.status==="pending"?<button className="smallPrimary" onClick={()=>approve("profile",p.id)} disabled={busy}>Approve</button>:"—"}</td></tr>)}{!members.length&&<tr><td colSpan={5} className="empty">No members registered.</td></tr>}</tbody></table></div></section>}
+ {tab==="training"&&<><section className="panel"><div className="panelHead"><div><h3>Training academy</h3><p>Practical commercial insurance courses and lessons.</p></div><span className="count">{courses.length} courses</span></div>{(admin||agencyAdmin)&&<form className="assignForm" onSubmit={assign}><label>Assign a course<select required value={selectedCourse} onChange={e=>setSelectedCourse(e.target.value)}><option value="">Choose published course</option>{courses.filter(c=>c.is_published).map(c=><option key={c.id} value={c.id}>{c.title}</option>)}</select></label><label>Agent<select required value={selectedAgent} onChange={e=>setSelectedAgent(e.target.value)}><option value="">Choose agent</option>{members.filter(m=>m.role==="agent"&&m.status==="active").map(m=><option key={m.id} value={m.id}>{m.full_name}</option>)}</select></label><button className="primary" disabled={busy}>Assign course</button></form>}<div className="courseGrid">{courses.map(c=><article className="courseCard" key={c.id}><div className="courseMeta"><span>{c.category}</span><span className="published">{c.is_published?"Published":"Draft"}</span></div><h4>{c.title}</h4><p>{c.description}</p><small>{c.level} · {c.duration_minutes} minutes</small><div className="lessonList">{lessons.filter(l=>l.course_id===c.id).sort((a,b)=>a.sort_order-b.sort_order).map(l=><details key={l.id}><summary>{l.title}</summary><p>{l.content}</p>{enrollments.some(e=>e.course_id===c.id&&e.user_id===user.id)&&<button className="smallPrimary" onClick={()=>completeLesson(l.id)} disabled={busy}>Mark lesson complete</button>}</details>)}</div></article>)}{!courses.length&&<div className="emptyState">The academy catalogue will appear after the Neon migrations are applied.</div>}</div></section><section className="panel"><div className="panelHead"><div><h3>{admin?"Portal-wide training progress":agencyAdmin?"Agency training progress":"My assigned training"}</h3><p>Assignments and completion records.</p></div></div><div className="tableWrap"><table><thead><tr><th>Course</th><th>Agent</th><th>Progress</th><th>Status</th></tr></thead><tbody>{enrollments.map(e=><tr key={e.id}><td>{e.course_title}</td><td>{e.member_name||(e.user_id===user.id?user.full_name:"Agent")}</td><td>{e.progress_percent}%</td><td>{nice(e.status)}</td></tr>)}{!enrollments.length&&<tr><td colSpan={4} className="empty">No assignments yet.</td></tr>}</tbody></table></div></section></>}
+ {tab==="payments"&&<><section className="panel"><div className="panelHead"><div><h3>Membership payment status</h3><p>Standard $10 · Premium $50. Submit a Payoneer transaction reference for manual review.</p></div></div>{!admin&&<form className="courseForm" onSubmit={submitPayment}><label>Membership plan<select value={plan} onChange={e=>setPlan(e.target.value)}><option>Standard</option><option>Premium</option></select></label><label>Payoneer transaction reference<input required value={paymentRef} onChange={e=>setPaymentRef(e.target.value)} placeholder="Transaction reference"/></label><button className="primary" disabled={busy}>Submit payment reference</button></form>}<div className="tableWrap"><table><thead><tr><th>Plan</th><th>Amount</th><th>Reference</th><th>Submitted</th><th>Status</th>{admin&&<th>Review</th>}</tr></thead><tbody>{payments.map(p=><tr key={p.id}><td>{p.plan}</td><td>${(p.amount_cents/100).toFixed(2)}</td><td>{p.payment_reference||"—"}</td><td>{new Date(p.submitted_at).toLocaleDateString()}</td><td>{nice(p.status)}</td>{admin&&<td>{p.status!=="verified"&&p.status!=="rejected"?<><button className="smallPrimary" onClick={()=>payReview(p.id,"verified")}>Verify</button><button onClick={()=>payReview(p.id,"rejected")}>Reject</button></>:"—"}</td>}</tr>)}{!payments.length&&<tr><td colSpan={admin?6:5} className="empty">No payment records yet.</td></tr>}</tbody></table></div></section><div className="notice warning">Payoneer processing is not connected. The portal records references and administrator review only; it does not collect or verify money automatically.</div></>}
+ {tab==="quotes"&&<><section className="panel"><div className="panelHead"><div><h3>Insurance quote practice</h3><p>Training simulator only—no live carrier submission, quote, or binding.</p></div></div><form className="courseForm" onSubmit={createQuote}><label>Applicant / business name<input required value={customer} onChange={e=>setCustomer(e.target.value)} placeholder="Practice applicant"/></label><label>Line of business<select value={lob} onChange={e=>setLob(e.target.value)}>{["General Liability","Commercial Property","Business Owners Policy","Commercial Auto","Workers Compensation","Umbrella","Liquor Liability"].map(x=><option key={x}>{x}</option>)}</select></label><label>Effective date<input type="date" value={effective} onChange={e=>setEffective(e.target.value)}/></label><label className="wide">Risk details<textarea rows={4} value={risk} onChange={e=>setRisk(e.target.value)} placeholder="Operations, sales/payroll, locations, limits, loss history and open questions."/></label><button className="primary" disabled={busy}>Create practice submission</button></form></section><section className="panel"><div className="panelHead"><div><h3>Practice submissions</h3><p>Review training exercises and underwriting notes.</p></div></div><div className="tableWrap"><table><thead><tr><th>Applicant</th><th>Line</th><th>Agent</th><th>Status</th><th>Created</th>{(admin||agencyAdmin)&&<th>Review</th>}</tr></thead><tbody>{quotes.map(q=><tr key={q.id}><td>{q.customer_name}</td><td>{q.line_of_business}</td><td>{q.agent_name||user.full_name}</td><td>{nice(q.status)}</td><td>{new Date(q.created_at).toLocaleDateString()}</td>{(admin||agencyAdmin)&&<td><button className="smallPrimary" onClick={()=>run(()=>api("/api/quote-practice","PATCH",{id:q.id,status:"reviewed",note:"Reviewed by training administrator."}),"Practice reviewed.")}>Mark reviewed</button></td>}</tr>)}{!quotes.length&&<tr><td colSpan={admin||agencyAdmin?6:5} className="empty">No practice submissions yet.</td></tr>}</tbody></table></div></section></>}
+ <footer className="footer">Galini Training Portal <span>Unified role-based workspace</span></footer></div></section></main>;
 }
