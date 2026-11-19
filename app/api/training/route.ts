@@ -1,122 +1,87 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-function clients() {
-  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_galiniSUPABASE_URL;
-  const anon = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_galiniSUPABASE_ANON_KEY;
-  const service = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
-  if (!url || !anon || !service) return null;
-  return {
-    auth: createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } }),
-    admin: createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } })
-  };
-}
-
-async function actorFor(request: NextRequest) {
-  const c = clients();
-  if (!c) return { error: "Server-side Supabase configuration is incomplete.", status: 503 as const };
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  if (!token) return { error: "Sign in required.", status: 401 as const };
-  const { data, error } = await c.auth.auth.getUser(token);
-  if (error || !data.user) return { error: "Session expired. Please sign in again.", status: 401 as const };
-  const { data: profile, error: profileError } = await c.admin.from("profiles")
-    .select("id,role,status,agency_id").eq("id", data.user.id).maybeSingle();
-  if (profileError || !profile) return { error: "Galini profile not found.", status: 403 as const };
-  if (!["active","approved"].includes(profile.status || "")) return { error: "Your account is awaiting approval.", status: 403 as const };
-  return { c, user: data.user, profile };
-}
+import { sql } from "@/lib/db";
+import { actorFor } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   const actor = await actorFor(request);
-  if ("error" in actor) return NextResponse.json({ error: actor.error }, { status: actor.status });
-  const { admin } = actor.c;
-  const role = actor.profile.role;
-  let courses = admin.from("training_courses").select("*").order("created_at", { ascending: false });
-  if (role !== "platform_admin") courses = courses.eq("is_published", true);
-  const { data: courseRows, error: courseError } = await courses;
-  if (courseError) return NextResponse.json({ error: "Training tables are not ready. Run the Galini training migration in Supabase.", detail: courseError.message }, { status: 503 });
-
-  let enrollments = admin.from("training_enrollments").select("*,training_courses(title,description,category,level,duration_minutes,content_url)");
-  if (role !== "platform_admin") {
-    if (role === "agency_admin" && actor.profile.agency_id) enrollments = enrollments.eq("agency_id", actor.profile.agency_id);
-    else enrollments = enrollments.eq("user_id", actor.user.id);
-  }
-  const { data: enrollmentRows, error: enrollmentError } = await enrollments.order("enrolled_at", { ascending: false });
-  if (enrollmentError) return NextResponse.json({ error: enrollmentError.message }, { status: 503 });
-  const userIds = Array.from(new Set((enrollmentRows || []).map((row: { user_id: string }) => row.user_id)));
-  const agencyIds = Array.from(new Set((enrollmentRows || []).map((row: { agency_id?: string | null }) => row.agency_id).filter((value: string | null | undefined): value is string => Boolean(value))));
-  let memberMap: Record<string, { full_name?: string | null; email?: string | null; agent_code?: string | null }> = {};
-  let agencyMap: Record<string, string> = {};
-  if (userIds.length) {
-    const { data: members } = await admin.from("profiles").select("id,full_name,email,agent_code").in("id", userIds);
-    memberMap = Object.fromEntries((members || []).map((member: { id: string; full_name?: string | null; email?: string | null; agent_code?: string | null }) => [member.id, { full_name: member.full_name, email: member.email, agent_code: member.agent_code }]));
-  }
-  if (agencyIds.length) {
-    const { data: agencyRows } = await admin.from("agencies").select("id,agency_name").in("id", agencyIds);
-    agencyMap = Object.fromEntries((agencyRows || []).map((agency: { id: string; agency_name?: string | null }) => [agency.id, agency.agency_name || agency.id]));
-  }
-  return NextResponse.json({ courses: courseRows || [], enrollments: (enrollmentRows || []).map((row: { user_id: string; agency_id?: string | null }) => ({ ...row, member: memberMap[row.user_id] || null, agency_name: row.agency_id ? agencyMap[row.agency_id] || row.agency_id : null })) });
+  if (!actor) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
+  if (!["active","approved"].includes(actor.status)) return NextResponse.json({ error: "Your account is awaiting approval." }, { status: 403 });
+  try {
+    const courses = actor.role === "platform_admin"
+      ? await sql`SELECT * FROM training_courses ORDER BY created_at DESC`
+      : await sql`SELECT * FROM training_courses WHERE is_published=true ORDER BY created_at DESC`;
+    const lessons = await sql`SELECT l.* FROM training_lessons l JOIN training_courses c ON c.id=l.course_id WHERE ${actor.role === "platform_admin"} OR (c.is_published=true AND l.is_published=true) ORDER BY l.course_id,l.sort_order`;
+    const enrollments = actor.role === "platform_admin"
+      ? await sql`SELECT e.*, c.title AS course_title, c.description AS course_description, c.category, c.duration_minutes, p.full_name AS member_name, p.email AS member_email, a.agency_name FROM training_enrollments e JOIN training_courses c ON c.id=e.course_id LEFT JOIN profiles p ON p.id=e.user_id LEFT JOIN agencies a ON a.id=e.agency_id ORDER BY e.enrolled_at DESC`
+      : actor.role === "agency_admin"
+      ? await sql`SELECT e.*, c.title AS course_title, c.description AS course_description, c.category, c.duration_minutes, p.full_name AS member_name, p.email AS member_email, a.agency_name FROM training_enrollments e JOIN training_courses c ON c.id=e.course_id LEFT JOIN profiles p ON p.id=e.user_id LEFT JOIN agencies a ON a.id=e.agency_id WHERE e.agency_id=${actor.agency_id} ORDER BY e.enrolled_at DESC`
+      : await sql`SELECT e.*, c.title AS course_title, c.description AS course_description, c.category, c.duration_minutes FROM training_enrollments e JOIN training_courses c ON c.id=e.course_id WHERE e.user_id=${actor.id} ORDER BY e.enrolled_at DESC`;
+    const results = await sql`SELECT * FROM training_results WHERE user_id=${actor.id} ORDER BY created_at DESC`;
+    return NextResponse.json({ courses, lessons, enrollments, results });
+  } catch (error: any) { return NextResponse.json({ error: "Training database is not ready. Apply both Neon migrations.", detail: error?.message }, { status: 503 }); }
 }
-
 export async function POST(request: NextRequest) {
   const actor = await actorFor(request);
-  if ("error" in actor) return NextResponse.json({ error: actor.error }, { status: actor.status });
-  const { admin } = actor.c;
+  if (!actor) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
+  if (!["active","approved"].includes(actor.status)) return NextResponse.json({ error: "Account approval is required." }, { status: 403 });
   const body = await request.json().catch(() => null);
-  if (!body || typeof body !== "object") return NextResponse.json({ error: "Invalid request." }, { status: 400 });
-
-  if (body.action === "create_course") {
-    if (actor.profile.role !== "platform_admin") return NextResponse.json({ error: "Only platform administrators can create courses." }, { status: 403 });
-    const title = String(body.title || "").trim();
-    if (!title) return NextResponse.json({ error: "Course title is required." }, { status: 400 });
-    const { data, error } = await admin.from("training_courses").insert({
-      title, description: String(body.description || ""), category: String(body.category || "General"),
-      level: String(body.level || "All levels"), duration_minutes: Math.max(1, Number(body.duration_minutes) || 30),
-      content_url: body.content_url ? String(body.content_url) : null, is_published: Boolean(body.is_published),
-      created_by: actor.user.id
-    }).select("*").single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-    return NextResponse.json({ course: data });
-  }
-
-  if (body.action === "assign_course") {
-    const role = actor.profile.role;
-    if (!["platform_admin","agency_admin"].includes(role)) return NextResponse.json({ error: "You do not have permission to assign training." }, { status: 403 });
-    const courseId = String(body.course_id || "");
-    const userIds = Array.isArray(body.user_ids) ? body.user_ids.map(String) : [];
-    if (!courseId || !userIds.length) return NextResponse.json({ error: "Choose a course and at least one agent." }, { status: 400 });
-    if (role === "agency_admin") {
-      const { data: members, error } = await admin.from("profiles").select("id").eq("agency_id", actor.profile.agency_id).eq("role", "agent").eq("status", "active").in("id", userIds);
-      if (error || (members || []).length !== userIds.length) return NextResponse.json({ error: "You can only assign training to active agents in your agency." }, { status: 403 });
+  try {
+    if (body?.action === "create_course") {
+      if (actor.role !== "platform_admin") return NextResponse.json({ error: "Administrator access required." }, { status: 403 });
+      const title = String(body.title || "").trim();
+      if (!title) return NextResponse.json({ error: "Course title is required." }, { status: 400 });
+      const rows = await sql`INSERT INTO training_courses (title,description,category,level,duration_minutes,is_published,created_by) VALUES (${title},${String(body.description||"")},${String(body.category||"General")},${String(body.level||"Beginner")},${Math.max(1,Number(body.duration_minutes)||30)},${Boolean(body.is_published)},${actor.id}) RETURNING *`;
+      return NextResponse.json({ course: rows[0] });
     }
-    const { data: course, error: courseError } = await admin.from("training_courses").select("id").eq("id", courseId).maybeSingle();
-    if (courseError || !course) return NextResponse.json({ error: "Course not found." }, { status: 404 });
-    const rows = userIds.map((user_id: string) => ({ course_id: courseId, user_id, agency_id: actor.profile.role === "agency_admin" ? actor.profile.agency_id : body.agency_id || null, assigned_by: actor.user.id }));
-    const { error } = await admin.from("training_enrollments").upsert(rows, { onConflict: "course_id,user_id" });
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-    return NextResponse.json({ ok: true, assigned: rows.length });
-  }
-  return NextResponse.json({ error: "Unknown training action." }, { status: 400 });
+    if (body?.action === "assign_course") {
+      if (!["platform_admin","agency_admin"].includes(actor.role)) return NextResponse.json({ error: "Agency administrator access required." }, { status: 403 });
+      const courseId = String(body.course_id||"");
+      const ids = Array.isArray(body.user_ids) ? body.user_ids.map(String) : [];
+      if (!courseId || !ids.length) return NextResponse.json({ error: "Choose a course and agents." }, { status: 400 });
+      const course = await sql`SELECT id FROM training_courses WHERE id=${courseId} AND is_published=true`;
+      if (!course.length) return NextResponse.json({ error: "Published course not found." }, { status: 404 });
+      let count=0;
+      for (const userId of ids) {
+        const member = actor.role === "platform_admin"
+          ? await sql`SELECT id,agency_id FROM profiles WHERE id=${userId} AND role='agent' AND status IN ('active','approved')`
+          : await sql`SELECT id,agency_id FROM profiles WHERE id=${userId} AND agency_id=${actor.agency_id} AND role='agent' AND status IN ('active','approved')`;
+        if (!member.length) continue;
+        await sql`INSERT INTO training_enrollments (course_id,user_id,agency_id,assigned_by) VALUES (${courseId},${userId},${member[0].agency_id},${actor.id}) ON CONFLICT (course_id,user_id) DO NOTHING`;
+        count++;
+      }
+      return NextResponse.json({ ok:true, assigned:count });
+    }
+    if (body?.action === "complete_lesson") {
+      const lessonId=String(body.lesson_id||"");
+      const lesson=await sql`SELECT l.id,l.course_id FROM training_lessons l JOIN training_courses c ON c.id=l.course_id WHERE l.id=${lessonId} AND l.is_published=true`;
+      if (!lesson.length) return NextResponse.json({error:"Lesson not found."},{status:404});
+      const enrollment=await sql`SELECT id FROM training_enrollments WHERE course_id=${lesson[0].course_id} AND user_id=${actor.id}`;
+      if (!enrollment.length) return NextResponse.json({error:"This lesson is not assigned to your account."},{status:403});
+      const done=await sql`INSERT INTO training_lesson_completions (lesson_id,user_id) VALUES (${lessonId},${actor.id}) ON CONFLICT (lesson_id,user_id) DO NOTHING RETURNING id`;
+      const totals=await sql`SELECT count(*)::int AS total, count(*) FILTER (WHERE EXISTS (SELECT 1 FROM training_lesson_completions x WHERE x.lesson_id=l.id AND x.user_id=${actor.id}))::int AS completed FROM training_lessons l WHERE l.course_id=${lesson[0].course_id} AND l.is_published=true`;
+      const percent=totals[0].total ? Math.round(totals[0].completed*100/totals[0].total) : 0;
+      await sql`UPDATE training_enrollments SET progress_percent=${percent}, status=${percent===100?"completed":"in_progress"}, completed_at=CASE WHEN ${percent===100} THEN now() ELSE NULL END WHERE id=${enrollment[0].id}`;
+      return NextResponse.json({ok:true,progress_percent:percent,already_completed:!done.length});
+    }
+    return NextResponse.json({ error: "Unknown training action." }, { status: 400 });
+  } catch (error:any) { return NextResponse.json({error:error?.message||"Training action failed."},{status:503}); }
 }
-
 export async function PATCH(request: NextRequest) {
   const actor = await actorFor(request);
-  if ("error" in actor) return NextResponse.json({ error: actor.error }, { status: actor.status });
+  if (!actor) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
   const body = await request.json().catch(() => null);
-  const enrollmentId = String(body?.enrollment_id || "");
-  const progress = Math.min(100, Math.max(0, Number(body?.progress_percent) || 0));
-  if (!enrollmentId) return NextResponse.json({ error: "Enrollment is required." }, { status: 400 });
-  const { admin } = actor.c;
-  const { data: enrollment, error: lookupError } = await admin.from("training_enrollments").select("id,user_id,agency_id").eq("id", enrollmentId).maybeSingle();
-  if (lookupError || !enrollment) return NextResponse.json({ error: "Training assignment not found." }, { status: 404 });
-  if (actor.profile.role !== "platform_admin" && enrollment.user_id !== actor.user.id &&
-      !(actor.profile.role === "agency_admin" && actor.profile.agency_id === enrollment.agency_id)) {
-    return NextResponse.json({ error: "You cannot update this training record." }, { status: 403 });
-  }
-  const status = progress >= 100 ? "completed" : progress > 0 ? "in_progress" : "assigned";
-  const { error } = await admin.from("training_enrollments").update({
-    progress_percent: progress, status, completed_at: progress >= 100 ? new Date().toISOString() : null
-  }).eq("id", enrollmentId);
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ ok: true, status, progress_percent: progress });
+  const id=String(body?.enrollment_id||"");
+  const progress=Math.max(0,Math.min(100,Number(body?.progress_percent)||0));
+  if(!id) return NextResponse.json({error:"Enrollment is required."},{status:400});
+  try {
+    const rows=actor.role==="platform_admin"
+      ? await sql`SELECT id,user_id,agency_id FROM training_enrollments WHERE id=${id}`
+      : actor.role==="agency_admin"
+      ? await sql`SELECT id,user_id,agency_id FROM training_enrollments WHERE id=${id} AND agency_id=${actor.agency_id}`
+      : await sql`SELECT id,user_id,agency_id FROM training_enrollments WHERE id=${id} AND user_id=${actor.id}`;
+    if(!rows.length) return NextResponse.json({error:"Training assignment not found or access denied."},{status:404});
+    const status=progress===100?"completed":progress>0?"in_progress":"assigned";
+    await sql`UPDATE training_enrollments SET progress_percent=${progress},status=${status},completed_at=CASE WHEN ${progress===100} THEN now() ELSE NULL END WHERE id=${id}`;
+    return NextResponse.json({ok:true,status,progress_percent:progress});
+  } catch(error:any){return NextResponse.json({error:error?.message||"Progress update failed."},{status:503});}
 }
