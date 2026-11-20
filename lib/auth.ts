@@ -40,10 +40,11 @@ export async function actorFor(request: NextRequest) {
   let claims: { sub?: string; exp?: number };
   try { claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")); } catch { return null; }
   if (!claims.sub || !claims.exp || claims.exp < Date.now()) return null;
-  const rows = await sql`SELECT id, email, full_name, role, status, agent_code, agency_id FROM profiles WHERE id = ${claims.sub} LIMIT 1`;
+  const rows = await sql\`SELECT p.id, p.email, p.full_name, p.role, p.status, p.agent_code, p.agency_id, g.status AS agency_status FROM profiles p LEFT JOIN agencies g ON g.id=p.agency_id WHERE p.id = \${claims.sub} LIMIT 1\`;
   const actor = rows[0] || null;
-  // Suspended accounts are blocked from all protected API routes, including existing sessions.
-  if (actor?.status === "suspended") return null;
+  // Suspended members and suspended agency accounts are blocked on every protected API route.
+  if (actor?.status === "suspended" || actor?.agency_status === "suspended") return null;
+  if (actor) delete actor.agency_status;
   return actor;
 }
 export { COOKIE };
