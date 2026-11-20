@@ -25,5 +25,24 @@ export function ratePractice(line:string,x:PracticeInput){
  }
  if(x.class_code)add("Classification",1,String(x.class_code)+(x.class_description?" · "+x.class_description:"")+" · "+String(x.class_code_basis||"carrier basis")+" (verify against carrier manual; no assumed code credit)");
  const total=Math.round(base*territory*credit*loss*safeguard*exposure);
- return {currency:"USD",period:"annual",estimated_annual_premium:total,monthly_equivalent:Math.round(total/12),base_premium:Math.round(base),factors,disclaimer:"EDUCATIONAL SIMULATION ONLY. These illustrative factors are not insurer rates, a filed rating plan, an indication, a quote, an offer of insurance, or a bindable premium. Real pricing depends on carrier underwriting, state rules, forms, limits, deductibles, eligibility and verified data."};
+ const flags=Array.isArray(x.referral_flags)?x.referral_flags.map((v:any)=>String(v)).filter(Boolean):[];
+ const missing:string[]=[];
+ if(!x.state)missing.push("Confirm state and rating territory.");
+ if(!x.effective_date)missing.push("Confirm requested effective date.");
+ if(!x.loss_count&&x.loss_count!=="0")missing.push("Obtain verified loss history.");
+ if(line==="Personal Auto"||line==="Commercial Auto"){
+  if(!Array.isArray(x.vehicle_schedule)||!x.vehicle_schedule.length)missing.push("Complete vehicle schedule with year, make, model, garaging and use.");
+  if(!Array.isArray(x.driver_schedule)||!x.driver_schedule.length)missing.push("Complete driver schedule and verify MVR authorization/results.");
+ }
+ if(line==="Personal Homeowners"&&(!x.year_built||!x.roof_age))missing.push("Verify year built, roof age and major system updates.");
+ if(["Commercial Package (BOP)","Commercial Package Policy (CPP)"].includes(line)){
+  if(!x.operations)missing.push("Add a detailed operations description.");
+  if(!x.annual_sales)missing.push("Confirm annual sales and exposure basis.");
+  if(!Array.isArray(x.property_schedule)||!x.property_schedule.length)missing.push("Complete location and property schedules.");
+ }
+ if(line==="Workers Compensation"&&!x.class_code)missing.push("Verify each job duty and state-specific WC classification with the applicable bureau/carrier.");
+ if(line==="General Liability"&&!x.class_code)missing.push("Confirm the carrier GL classification and exposure basis; NAICS is not an insurance class code.");
+ if(n(x.loss_count)>0&&!x.loss_details)missing.push("Provide loss dates, causes, amounts, open/closed status and corrective actions.");
+ const review={decision:flags.length?"Underwriting referral recommended":missing.length?"Incomplete — gather information":"Training review only",referral_flags:flags,missing_information:missing,ready_for_carrier_submission:flags.length===0&&missing.length===0};
+ return {currency:"USD",period:"annual",estimated_annual_premium:total,monthly_equivalent:Math.round(total/12),base_premium:Math.round(base),premium_components:[{label:"Base premium",amount:Math.round(base)},{label:"Territory factor",factor:territory},{label:"Applicant factor",factor:credit},{label:"Loss factor",factor:loss},{label:"Safeguard factor",factor:safeguard},{label:"Product exposure factor",factor:exposure}],factors,underwriting_review:review,disclaimer:"EDUCATIONAL SIMULATION ONLY. This illustrative model is not a carrier rating engine, filed rating plan, indication, quote, offer of insurance, or bindable premium. Real pricing depends on carrier underwriting, state rules, filed forms, limits, deductibles, eligibility, verified data and carrier-specific rules."};
 }
