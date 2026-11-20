@@ -42,24 +42,28 @@ export async function POST(request: NextRequest) {
         const agencyName = String(body.agencyName || "").trim();
         if (!agencyName) return NextResponse.json({ error: "Agency name is required." }, { status: 400 });
         const code = randomBytes(4).toString("hex").toUpperCase();
-        const created = await sql`INSERT INTO agencies (agency_name, agency_code, status) VALUES (${agencyName}, ${code}, 'pending') RETURNING id, status, agency_code`;
+        const created = await sql`INSERT INTO agencies (agency_name, agency_code, status) VALUES (${agencyName}, ${code}, 'active') RETURNING id, status, agency_code`;
         agencyId = created[0].id; agencyStatus = created[0].status;
       } else if (!isBootstrapAdmin) {
         const code = String(body.agencyCode || "").trim().toUpperCase();
         if (!code) return NextResponse.json({ error: "Enter the agency invitation code supplied by your agency administrator." }, { status: 400 });
-        const agencies = await sql`SELECT id, status FROM agencies WHERE upper(agency_code) = ${code} LIMIT 1`;
-        if (!agencies.length) return NextResponse.json({ error: "Agency code not found. Check the code with your agency administrator." }, { status: 404 });
+        const agencies = await sql`SELECT id, status FROM agencies WHERE upper(agency_code) = ${code} AND status='active' LIMIT 1`;
+        if (!agencies.length) return NextResponse.json({ error: "Active agency invitation code not found. Ask your agency administrator to confirm the code." }, { status: 404 });
         agencyId = agencies[0].id; agencyStatus = agencies[0].status;
       }
-      const status = isBootstrapAdmin ? "active" : "pending";
+      const status = "active";
       const inserted = await sql`INSERT INTO profiles (email, full_name, password_hash, role, status, agency_id) VALUES (${email}, ${fullName}, ${hashPassword(password)}, ${role}, ${status}, ${agencyId}) RETURNING id, email, full_name, role, status, agent_code, agency_id`;
       user = inserted[0];
-      // profiles is the active identity store. Email verification is intentionally deferred:
-      // SMTP delivery and a profile-backed verification flow are not configured yet.
-      // Do not write to the legacy email_verification_tokens table during registration.
+      // Self-service onboarding: active agency invitations authorize agent signup.
+      // New agency workspaces are activated immediately; platform-admin bootstrap remains email-restricted.
+      if (role === "agent" || role === "agency_admin") {
+        await sql`INSERT INTO training_enrollments (course_id,user_id,agency_id,assigned_by)
+          SELECT id,${user.id},${agencyId},NULL FROM training_courses WHERE is_published=true
+          ON CONFLICT (course_id,user_id) DO NOTHING`;
+      }
     }
     const agency = user.agency_id ? (await sql`SELECT agency_name, agency_code, status FROM agencies WHERE id = ${user.agency_id} LIMIT 1`)[0] || null : null;
-    const response = NextResponse.json({ user, agency, message: user.status === "active" ? "Welcome to Galini." : "Registration received. Your access is pending administrator approval." });
+    const response = NextResponse.json({ user, agency, message: user.status === "active" ? "Your account is ready. Published academy courses have been added to your learning dashboard." : "Registration received." });
     response.cookies.set(COOKIE, makeSession(user.id), sessionCookieOptions());
     return response;
   } catch (error: any) {
