@@ -249,3 +249,21 @@ tr:hover td{background:#fbfcff}
 .examReportSummary article small{display:block;margin-top:4px;color:#718096;font-size:11px}
 @media(max-width:900px){.fieldGuidePictureGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.examReportSummary{grid-template-columns:repeat(2,minmax(0,1fr))}.examReportSummary>div{grid-column:1/-1}}
 @media(max-width:520px){.fieldGuidePictureGrid{grid-template-columns:1fr 1fr}.fieldGuidePictures{padding:14px}.fieldGuidePictureGrid article{padding:8px}.fieldGuidePictureGrid svg{height:82px}.examReportSummary{grid-template-columns:1fr 1fr}}
+
+/* In-portal video learning and richer course discovery */
+.academyCourseOutcomes{margin:14px 0 2px;padding:12px;border-radius:10px;background:#f7f8ff;border:1px solid #ecebff}
+.academyCourseOutcomes>b{display:block;font-size:9px;letter-spacing:.14em;color:#7770d9;margin-bottom:9px}
+.academyCourseOutcomes>div{display:flex;gap:8px;align-items:flex-start;margin-top:8px}
+.academyCourseOutcomes i{font-style:normal;color:#209b78;font-weight:800;font-size:12px}
+.academyCourseOutcomes span,.academyCourseOutcomes strong,.academyCourseOutcomes small{display:block}
+.academyCourseOutcomes strong{font-size:10px;color:#2b3954}
+.academyCourseOutcomes small{font-size:9px;color:#7a879d;line-height:1.5;margin-top:3px}
+.fieldGuideVideo{margin-top:22px;padding:18px;border:1px solid #e3e8f1;border-radius:14px;background:#fff}
+.fieldGuideVideoHead span,.fieldGuideVideoHead strong,.fieldGuideVideoHead small{display:block}
+.fieldGuideVideoHead span{font-size:9px;font-weight:800;letter-spacing:.15em;color:#655bd1}
+.fieldGuideVideoHead strong{font:700 15px Manrope,sans-serif;color:#233451;margin-top:8px}
+.fieldGuideVideoHead small{font-size:10px;color:#8995a8;margin-top:5px}
+.fieldGuidePlayer{position:relative;width:100%;aspect-ratio:16/9;margin-top:14px;overflow:hidden;border-radius:11px;background:#101d36}
+.fieldGuidePlayer iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.fieldGuideVideoNote{font-size:10px;color:#75819a;line-height:1.6;margin:10px 0 0}
+@media(max-width:700px){.fieldGuideVideo{padding:12px}.fieldGuideVideoHead strong{font-size:13px}}
