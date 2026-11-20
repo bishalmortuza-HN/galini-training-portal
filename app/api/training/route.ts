@@ -26,6 +26,15 @@ export async function POST(request: NextRequest) {
   if (!["active","approved"].includes(actor.status)) return NextResponse.json({ error: "Account approval is required." }, { status: 403 });
   const body = await request.json().catch(() => null);
   try {
+    if (body?.action === "self_enroll") {
+      if (actor.role !== "agent") return NextResponse.json({ error: "Only agent accounts can self-enroll." }, { status: 403 });
+      const courseId = String(body.course_id || "");
+      if (!courseId) return NextResponse.json({ error: "Choose a course." }, { status: 400 });
+      const course = await sql`SELECT id FROM training_courses WHERE id=${courseId} AND is_published=true`;
+      if (!course.length) return NextResponse.json({ error: "Published course not found." }, { status: 404 });
+      const rows = await sql`INSERT INTO training_enrollments(course_id,user_id,agency_id,assigned_by) VALUES(${courseId},${actor.id},${actor.agency_id},NULL) ON CONFLICT(course_id,user_id) DO UPDATE SET course_id=EXCLUDED.course_id RETURNING *`;
+      return NextResponse.json({ ok:true, enrollment:rows[0] });
+    }
     if (body?.action === "create_course") {
       if (actor.role !== "platform_admin") return NextResponse.json({ error: "Administrator access required." }, { status: 403 });
       const title = String(body.title || "").trim();
