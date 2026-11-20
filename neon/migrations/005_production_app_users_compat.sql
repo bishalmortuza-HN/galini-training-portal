@@ -75,10 +75,7 @@ ALTER TABLE training_results DROP CONSTRAINT IF EXISTS training_results_user_id_
 ALTER TABLE training_results ADD CONSTRAINT training_results_user_id_profiles_fkey
   FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
 
-CREATE TABLE IF NOT EXISTS galini_schema_migrations (
-  migration_name text PRIMARY KEY,
-  applied_at timestamptz NOT NULL DEFAULT now()
-);
-INSERT INTO galini_schema_migrations(migration_name)
+-- The existing Galini migration ledger uses the `version` column.
+INSERT INTO galini_schema_migrations(version)
 VALUES ('005_production_app_users_compat')
-ON CONFLICT (migration_name) DO NOTHING;
+ON CONFLICT (version) DO NOTHING;
