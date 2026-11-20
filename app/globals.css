@@ -216,3 +216,36 @@ tr:hover td{background:#fbfcff}
 .academyLessonConcept small{display:block;margin-top:10px;color:#7b879b;font-size:9px}
 @media(max-width:800px){.academyVisualFlow{grid-template-columns:repeat(2,minmax(0,1fr))}.academyVisualStep>i{display:none}}
 @media(max-width:480px){.academyVisualFlow{grid-template-columns:1fr}.academyVisualStep{min-height:0}.academyLessonConcept>div{flex-wrap:wrap;justify-content:flex-start}.academyLessonConcept i{display:none}}
+
+
+/* Illustrated Field Guide and AI learning tutor */
+.fieldGuidePictures{margin:22px 0;padding:22px;border:1px solid #e1e7f0;border-radius:20px;background:linear-gradient(135deg,#f8fbff,#f2f5fb)}
+.fieldGuidePicturesHead span,.insuranceTutorHead span,.fieldGuideVideo>span,.examReportSummary>div>span{display:block;color:#6258c8;font-size:10px;font-weight:850;letter-spacing:.14em}
+.fieldGuidePicturesHead strong,.insuranceTutorHead strong{display:block;margin:7px 0 5px;color:#17243b;font-size:19px}
+.fieldGuidePicturesHead small,.insuranceTutorHead small{display:block;color:#68758a;line-height:1.6}
+.fieldGuidePictureGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.fieldGuidePictureGrid article{min-width:0;padding:12px;border:1px solid #e1e8f1;border-radius:15px;background:#fff}
+.fieldGuidePictureGrid svg{display:block;width:100%;height:112px}
+.fieldGuidePictureGrid b{display:block;margin-top:5px;color:#20314b;font-size:14px}
+.fieldGuidePictureGrid small{display:block;margin-top:3px;color:#6b778a;font-size:11px;line-height:1.45}
+.fieldGuideVideo{margin:18px 0;padding:16px 18px;border-radius:14px;background:#f2f6fb;border:1px solid #e2e9f2}
+.fieldGuideVideo p{margin:7px 0 10px;color:#5d6a7e;font-size:13px;line-height:1.6}
+.fieldGuideVideo a{font-size:13px;font-weight:800;color:#554cc0;text-decoration:none}
+.insuranceTutor{margin-top:22px;padding:22px;border-radius:18px;border:1px solid #dedcf7;background:linear-gradient(145deg,#f8f7ff,#fff)}
+.insuranceTutorHead strong{font-size:20px}
+.tutorPrompts{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+.tutorPrompts button{border:1px solid #d8d5f1;background:#fff;border-radius:20px;padding:8px 11px;color:#5149a7;font-size:11px;font-weight:700;cursor:pointer}
+.insuranceTutor textarea{display:block;width:100%;min-height:90px;padding:12px;border:1px solid #dce2ed;border-radius:12px;background:#fff;color:#26344b;resize:vertical;font:inherit;font-size:13px}
+.insuranceTutor>.primary{margin-top:10px}
+.tutorError{color:#b13e42;font-size:12px;margin:10px 0}
+.tutorAnswer{margin-top:16px;padding:16px;border-radius:13px;background:#fff;border:1px solid #e0e5ef}
+.tutorAnswer b{color:#4f47b3;font-size:12px}
+.tutorAnswer p{white-space:pre-wrap;color:#344258;font-size:13px;line-height:1.7;margin:8px 0 0}
+.examReportSummary{display:grid;grid-template-columns:minmax(200px,1.6fr) repeat(4,minmax(105px,.7fr));gap:12px;align-items:stretch;margin:0 0 18px}
+.examReportSummary>div,.examReportSummary article{padding:18px;border-radius:15px;border:1px solid #e1e7f0;background:#fff}
+.examReportSummary h2{font-size:20px;color:#1d2c45;margin:6px 0}
+.examReportSummary p{font-size:12px;color:#6a778b;margin:0}
+.examReportSummary article strong{display:block;font-size:25px;color:#24344f}
+.examReportSummary article small{display:block;margin-top:4px;color:#718096;font-size:11px}
+@media(max-width:900px){.fieldGuidePictureGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.examReportSummary{grid-template-columns:repeat(2,minmax(0,1fr))}.examReportSummary>div{grid-column:1/-1}}
+@media(max-width:520px){.fieldGuidePictureGrid{grid-template-columns:1fr 1fr}.fieldGuidePictures{padding:14px}.fieldGuidePictureGrid article{padding:8px}.fieldGuidePictureGrid svg{height:82px}.examReportSummary{grid-template-columns:1fr 1fr}}
