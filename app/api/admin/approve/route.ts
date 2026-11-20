@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     if (body.kind === "agency_status") {
       const nextStatus = body.status === "suspended" ? "suspended" : body.status === "active" ? "active" : null;
       if (!nextStatus) return NextResponse.json({ error: "Choose suspend or restore agency access." }, { status: 400 });
-      const rows = await sql\`UPDATE agencies SET status=\${nextStatus}, updated_at=now() WHERE id=\${body.id} RETURNING id, status\`;
+      const rows = await sql`UPDATE agencies SET status=${nextStatus}, updated_at=now() WHERE id=${body.id} RETURNING id, status`;
       if (!rows.length) return NextResponse.json({ error: "Agency not found." }, { status: 404 });
       return NextResponse.json({ ok: true, id: rows[0].id, status: rows[0].status });
     }
@@ -34,12 +34,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, id: rows[0].id, status: rows[0].status });
     }
     const status = body.status === "verified" ? "verified" : "rejected";
-    const rows = await sql\`UPDATE payment_transactions SET status=\${status}, admin_note=\${String(body.note || "").slice(0,1000)}, reviewed_at=now(), reviewed_by=\${actor.id} WHERE id=\${body.id} RETURNING id, user_id, agency_id, plan\`;
+    const rows = await sql`UPDATE payment_transactions SET status=${status}, admin_note=${String(body.note || "").slice(0,1000)}, reviewed_at=now(), reviewed_by=${actor.id} WHERE id=${body.id} RETURNING id, user_id, agency_id, plan`;
     if (!rows.length) return NextResponse.json({ error: "Payment not found." }, { status: 404 });
     let accountHeld = false;
     let agencyUpdated = false;
     if (status === "verified" && rows[0].agency_id && !rows[0].user_id) {
-      const updated = await sql\`UPDATE agencies SET membership_status='active', plan=\${rows[0].plan}, updated_at=now() WHERE id=\${rows[0].agency_id} RETURNING id\`;
+      const updated = await sql`UPDATE agencies SET membership_status='active', plan=${rows[0].plan}, updated_at=now() WHERE id=${rows[0].agency_id} RETURNING id`;
       agencyUpdated = updated.length > 0;
     }
     if (status === "rejected" && body.hold_account === true) {
