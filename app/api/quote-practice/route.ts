@@ -52,10 +52,11 @@ export async function PATCH(req:NextRequest){
   if(!current.length)return NextResponse.json({error:"Submission not found."},{status:404});
   if(!["draft","needs_revision"].includes(current[0].status))return NextResponse.json({error:"Only a draft or a submission returned for revision can be resubmitted."},{status:409});
   const nextStatus=b.submit===true?"submitted":"draft";
-  const updatedRisk=b.risk_data&&typeof b.risk_data==="object"?JSON.stringify(b.risk_data):null;
+  const revised=b.risk_data&&typeof b.risk_data==="object"?{...b.risk_data,practice_rating:ratePractice(String(b.line_of_business||""),b.risk_data)}:null;
+  const updatedRisk=revised?JSON.stringify(revised):null;
   const rows=updatedRisk
    ?await sql`UPDATE quote_practice_submissions SET status=${nextStatus},updated_at=now(),risk_data=jsonb_set(${updatedRisk}::jsonb,'{workflow_history}',COALESCE(risk_data->'workflow_history','[]'::jsonb)||jsonb_build_array(jsonb_build_object('action',${nextStatus},'actor_id',${a.id},'actor_role',${a.role},'at',now()))) WHERE id=${b.id} AND agent_id=${a.id} RETURNING status`
    :await sql`UPDATE quote_practice_submissions SET status=${nextStatus},updated_at=now(),risk_data=jsonb_set(COALESCE(risk_data,'{}'::jsonb),'{workflow_history}',COALESCE(risk_data->'workflow_history','[]'::jsonb)||jsonb_build_array(jsonb_build_object('action',${nextStatus},'actor_id',${a.id},'actor_role',${a.role},'at',now()))) WHERE id=${b.id} AND agent_id=${a.id} RETURNING status`;
-  return NextResponse.json({ok:true,status:rows[0].status});
+  return NextResponse.json({ok:true,status:rows[0].status,rating:revised?.practice_rating||null});
  }catch(e:any){return NextResponse.json({error:e?.message||"Quote workflow update failed."},{status:503});}
 }
