@@ -7,6 +7,13 @@ export async function GET(request: NextRequest) {
   if (!actor) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
   if (!["active","approved"].includes(actor.status)) return NextResponse.json({ error: "Your account is awaiting approval." }, { status: 403 });
   try {
+    // Keep every active learner automatically enrolled in every currently published course.
+    // This also picks up courses published after the account was created.
+    if (actor.role === "agent" || actor.role === "agency_admin") {
+      await sql`INSERT INTO training_enrollments (course_id,user_id,agency_id,assigned_by)
+        SELECT id,${actor.id},${actor.agency_id},NULL FROM training_courses WHERE is_published=true
+        ON CONFLICT (course_id,user_id) DO NOTHING`;
+    }
     const courses = actor.role === "platform_admin"
       ? await sql`SELECT * FROM training_courses ORDER BY created_at DESC`
       : await sql`SELECT * FROM training_courses WHERE is_published=true ORDER BY created_at DESC`;
@@ -27,7 +34,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   try {
     if (body?.action === "self_enroll") {
-      if (actor.role !== "agent") return NextResponse.json({ error: "Only agent accounts can self-enroll." }, { status: 403 });
+      if (!["agent","agency_admin"].includes(actor.role)) return NextResponse.json({ error: "Only agency learners can self-enroll." }, { status: 403 });
       const courseId = String(body.course_id || "");
       if (!courseId) return NextResponse.json({ error: "Choose a course." }, { status: 400 });
       const course = await sql`SELECT id FROM training_courses WHERE id=${courseId} AND is_published=true`;
