@@ -267,3 +267,61 @@ tr:hover td{background:#fbfcff}
 .fieldGuidePlayer iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .fieldGuideVideoNote{font-size:10px;color:#75819a;line-height:1.6;margin:10px 0 0}
 @media(max-width:700px){.fieldGuideVideo{padding:12px}.fieldGuideVideoHead strong{font-size:13px}}
+
+
+/* Galini professional identity — Crema Clásica / Verde Abeto / Rojo Tomate */
+:root{
+  --ink:#26352d;
+  --muted:#788078;
+  --line:#e7e1d6;
+  --paper:#f5efe5;
+  --purple:#285642;
+  --navy:#183c30;
+  --teal:#47765d;
+  --galini-cream:#f5efe5;
+  --galini-forest:#285642;
+  --galini-tomato:#d65b45;
+}
+body{background:var(--galini-cream);color:#26352d;font-family:'DM Sans',sans-serif}
+.authShell{background:var(--galini-cream)}
+.authIntro{background:linear-gradient(145deg,#183c30 0%,#285642 58%,#345f49 100%)}
+.authIntro .brand{color:#fff}
+.brand{font-family:'Manrope',sans-serif;letter-spacing:.09em}
+.brandMark{
+ display:grid;place-items:center;width:44px;height:44px;flex:0 0 44px;
+ border-radius:13px;background:linear-gradient(145deg,#f5efe5,#e8ddca);
+ color:#285642;box-shadow:0 6px 18px #102c2050;border:1px solid #ffffff55;
+}
+.brandMark svg{display:block;width:31px;height:31px}
+.brandSub{color:#e5d9c5}
+.sidebar{background:linear-gradient(180deg,#183c30 0%,#214b39 100%)}
+.sidebar .brand{color:#fff}
+.sidebar .brand small{color:#d2ddcf}
+.navItem.active{background:#35634b;box-shadow:inset 3px 0 #e2c8a3;color:#fff}
+.navItem:hover{background:#2d5942;color:#fff}
+.navItem b{background:var(--galini-tomato)}
+.workspaceTag{color:#c0d0c1}
+.helpBox{background:#214a38;border-color:#ffffff20}
+.primary,.smallPrimary{background:var(--galini-forest);color:#fff}
+.primary:hover,.smallPrimary:hover{background:#1d4634}
+.textButton,.switchMode button{color:var(--galini-forest)}
+.form input:focus{border-color:#47765d;box-shadow:0 0 0 3px #47765d20}
+.avatar{background:#e8dfcf;color:#285642}
+.eyebrow{color:#b84c3b}
+.introCopy .eyebrow{color:#e8c9a7}
+.status.active,.published{background:#e5eee5;color:#285642}
+.notice.error{background:#fff1ed;border-color:#f0c9bd;color:#a74434}
+.attentionIcon{background:#f0e7d9;color:#285642}
+.count{background:#f5e9d8;color:#8b5d36}
+.ratingHero>div:first-child strong{color:#285642}
+.courseMeta,.courseCard a,.enrollmentBottom a{color:#285642}
+.progressTrack span{background:linear-gradient(90deg,#285642,#6d9878)}
+.academyVisualMapHead>span,.academyVisualStep>span{color:#285642}
+.academyVisualStep>span{background:#e8eee5}
+.academyLessonConcept>span{color:#285642}
+.academyLessonConcept{background:#f7f1e8;border-color:#e8dece}
+.fieldGuidePictures{background:linear-gradient(135deg,#faf6ef,#f0e9dc)}
+.fieldGuidePicturesHead span,.insuranceTutorHead span,.fieldGuideVideo>span,.examReportSummary>div>span{color:#285642}
+.insuranceTutor{border-color:#e6d8c5;background:linear-gradient(145deg,#faf6ef,#fff)}
+.tutorPrompts button{border-color:#d8e3d8;color:#285642}
+.tutorAnswer b{color:#285642}
