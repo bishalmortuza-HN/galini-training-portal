@@ -5,7 +5,6 @@ import {ratePractice} from "@/lib/practice-rating";
 import {hasPaidAccess,paymentRequiredResponse} from "@/lib/membership-access";
 
 const supported=["Personal Homeowners","Personal Auto","Personal Umbrella","Personal Renters","Personal Condo","Personal Motorcycle","Commercial Package (BOP)","Commercial Package Policy (CPP)","Commercial Auto","General Liability","Workers Compensation","Commercial Umbrella","Professional Liability (E&O)","Cyber Liability","Liquor Liability","Garage Liability","Inland Marine"];
-const publicFields=`q.id,q.customer_name,q.line_of_business,q.effective_date,q.risk_data,q.exercise_type,q.status,q.reviewer_note,q.reviewed_at,q.created_at,q.updated_at`;
 
 export async function GET(req:NextRequest){
  const a=await actorFor(req);
@@ -13,10 +12,10 @@ export async function GET(req:NextRequest){
  if(!(await hasPaidAccess(a)))return NextResponse.json(paymentRequiredResponse(),{status:402});
  try{
   const rows=a.role==="platform_admin"
-   ?await sql`SELECT ${sql.unsafe(publicFields)},p.full_name AS agent_name,p.agent_code,g.agency_name,rv.full_name AS reviewer_name FROM quote_practice_submissions q JOIN profiles p ON p.id=q.agent_id LEFT JOIN agencies g ON g.id=q.agency_id LEFT JOIN profiles rv ON rv.id=q.reviewed_by ORDER BY q.created_at DESC`
+   ?await sql`SELECT q.id,q.customer_name,q.line_of_business,q.effective_date,q.risk_data,q.exercise_type,q.status,q.reviewer_note,q.reviewed_at,q.created_at,q.updated_at,p.full_name AS agent_name,p.agent_code,g.agency_name,rv.full_name AS reviewer_name FROM quote_practice_submissions q JOIN profiles p ON p.id=q.agent_id LEFT JOIN agencies g ON g.id=q.agency_id LEFT JOIN profiles rv ON rv.id=q.reviewed_by ORDER BY q.created_at DESC`
    :a.role==="agency_admin"
    ?await sql`SELECT ${sql.unsafe(publicFields)},p.full_name AS agent_name,p.agent_code,g.agency_name,rv.full_name AS reviewer_name FROM quote_practice_submissions q JOIN profiles p ON p.id=q.agent_id LEFT JOIN agencies g ON g.id=q.agency_id LEFT JOIN profiles rv ON rv.id=q.reviewed_by WHERE q.agency_id=${a.agency_id} ORDER BY q.created_at DESC`
-   :await sql`SELECT ${sql.unsafe(publicFields)},rv.full_name AS reviewer_name FROM quote_practice_submissions q LEFT JOIN profiles rv ON rv.id=q.reviewed_by WHERE q.agent_id=${a.id} ORDER BY q.created_at DESC`;
+   :await sql`SELECT q.id,q.customer_name,q.line_of_business,q.effective_date,q.risk_data,q.exercise_type,q.status,q.reviewer_note,q.reviewed_at,q.created_at,q.updated_at,rv.full_name AS reviewer_name FROM quote_practice_submissions q LEFT JOIN profiles rv ON rv.id=q.reviewed_by WHERE q.agent_id=${a.id} ORDER BY q.created_at DESC`;
   return NextResponse.json({submissions:rows});
  }catch(e:any){return NextResponse.json({error:e?.message||"Quote practice data could not be loaded."},{status:503});}
 }
