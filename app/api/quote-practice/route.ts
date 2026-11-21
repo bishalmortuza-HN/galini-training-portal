@@ -4,6 +4,9 @@ import {actorFor} from "@/lib/auth";
 import {ratePractice} from "@/lib/practice-rating";
 import {hasPaidAccess,paymentRequiredResponse} from "@/lib/membership-access";
 
+function safeRisk(value:any){if(!value||typeof value!=="object"||Array.isArray(value))return value;const copy={...value};if(Array.isArray(copy.workflow_history))copy.workflow_history=copy.workflow_history.map((item:any)=>{const {actor_id,...safe}=item||{};return safe;});return copy;}
+function safeRows(rows:any[]){return rows.map(row=>({...row,risk_data:safeRisk(row.risk_data)}));}
+
 const supported=["Personal Homeowners","Personal Auto","Personal Umbrella","Personal Renters","Personal Condo","Personal Motorcycle","Commercial Package (BOP)","Commercial Package Policy (CPP)","Commercial Auto","General Liability","Workers Compensation","Commercial Umbrella","Professional Liability (E&O)","Cyber Liability","Liquor Liability","Garage Liability","Inland Marine"];
 
 export async function GET(req:NextRequest){
@@ -16,7 +19,7 @@ export async function GET(req:NextRequest){
    :a.role==="agency_admin"
    ?await sql`SELECT q.id,q.customer_name,q.line_of_business,q.effective_date,q.risk_data,q.exercise_type,q.status,q.reviewer_note,q.reviewed_at,q.created_at,q.updated_at,p.full_name AS agent_name,p.agent_code,g.agency_name,rv.full_name AS reviewer_name FROM quote_practice_submissions q JOIN profiles p ON p.id=q.agent_id LEFT JOIN agencies g ON g.id=q.agency_id LEFT JOIN profiles rv ON rv.id=q.reviewed_by WHERE q.agency_id=${a.agency_id} ORDER BY q.created_at DESC`
    :await sql`SELECT q.id,q.customer_name,q.line_of_business,q.effective_date,q.risk_data,q.exercise_type,q.status,q.reviewer_note,q.reviewed_at,q.created_at,q.updated_at,rv.full_name AS reviewer_name FROM quote_practice_submissions q LEFT JOIN profiles rv ON rv.id=q.reviewed_by WHERE q.agent_id=${a.id} ORDER BY q.created_at DESC`;
-  return NextResponse.json({submissions:rows});
+  return NextResponse.json({submissions:safeRows(rows)});
  }catch(e:any){return NextResponse.json({error:e?.message||"Quote practice data could not be loaded."},{status:503});}
 }
 
@@ -34,7 +37,7 @@ export async function POST(req:NextRequest){
   const stored={...risk,practice_rating:rating,workflow_history:[{action:"draft_created",actor_id:a.id,actor_role:a.role,at:new Date().toISOString()}]};
   const rows=await sql`INSERT INTO quote_practice_submissions(agency_id,agent_id,customer_name,line_of_business,effective_date,risk_data,exercise_type,status) VALUES(${a.agency_id},${a.id},${String(b.customer_name).slice(0,180)},${String(b.line_of_business)},${b.effective_date||null},${JSON.stringify(stored)}::jsonb,'practice','draft') RETURNING id,status,customer_name,line_of_business,effective_date,risk_data,created_at,updated_at`;
   for(const [key,title] of [["intake","Applicant intake"],["exposure","Exposure and risk details"],["coverage","Coverage selection"],["rating","Practice rating and premium breakdown"],["underwriting","Underwriting review"],["proposal","Proposal comparison and bind checklist"]])await sql`INSERT INTO quote_practice_steps(submission_id,step_key,step_title) VALUES(${rows[0].id},${key},${title}) ON CONFLICT(submission_id,step_key) DO NOTHING`;
-  return NextResponse.json({submission:rows[0],rating});
+  return NextResponse.json({submission:safeRows(rows)[0],rating});
  }catch(e:any){return NextResponse.json({error:e?.message||"Could not create practice rating."},{status:503});}
 }
 
@@ -70,6 +73,6 @@ export async function PATCH(req:NextRequest){
   const rows=updatedRisk
    ?await sql`UPDATE quote_practice_submissions SET customer_name=${customer.slice(0,180)},line_of_business=${line},effective_date=${b.effective_date||null},status=${nextStatus},updated_at=now(),risk_data=jsonb_set(${updatedRisk}::jsonb,'{workflow_history}',COALESCE(risk_data->'workflow_history','[]'::jsonb)||jsonb_build_array(jsonb_build_object('action',${String(nextStatus)}::text,'actor_id',${String(a.id)}::uuid,'actor_role',${String(a.role)}::text,'at',now()))) WHERE id=${b.id} AND agent_id=${a.id} RETURNING id,status,customer_name,line_of_business,effective_date,risk_data,updated_at`
    :await sql`UPDATE quote_practice_submissions SET status=${nextStatus},updated_at=now(),risk_data=jsonb_set(COALESCE(risk_data,'{}'::jsonb),'{workflow_history}',COALESCE(risk_data->'workflow_history','[]'::jsonb)||jsonb_build_array(jsonb_build_object('action',${String(nextStatus)}::text,'actor_id',${String(a.id)}::uuid,'actor_role',${String(a.role)}::text,'at',now()))) WHERE id=${b.id} AND agent_id=${a.id} RETURNING id,status,customer_name,line_of_business,effective_date,risk_data,updated_at`;
-  return NextResponse.json({ok:true,submission:rows[0],status:rows[0].status,rating:revised?.practice_rating||null});
+  return NextResponse.json({ok:true,submission:safeRows(rows)[0],status:rows[0].status,rating:revised?.practice_rating||null});
  }catch(e:any){return NextResponse.json({error:e?.message||"Quote workflow update failed."},{status:503});}
 }
