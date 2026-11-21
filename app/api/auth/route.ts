@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       // Training enrollment is deferred until verified paid access is granted and the learner opens the Academy.
     }
     const agency = user.agency_id ? (await sql`SELECT agency_name, agency_code, status FROM agencies WHERE id = ${user.agency_id} LIMIT 1`)[0] || null : null;
-    const response = NextResponse.json({ user, agency, message: user.status === "active" ? "Your account is ready. Published academy courses have been added to your learning dashboard." : "Registration received." });
+    const response = NextResponse.json({ user, agency, message: user.status === "active" ? "Your account is active. Submit your membership payment and wait for verification to unlock Training and Quote Practice." : "Registration received." });
     response.cookies.set(COOKIE, makeSession(user.id), sessionCookieOptions());
     return response;
   } catch (error: any) {
