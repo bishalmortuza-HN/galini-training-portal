@@ -54,13 +54,7 @@ export async function POST(request: NextRequest) {
       const status = "active";
       const inserted = await sql`INSERT INTO profiles (email, full_name, password_hash, role, status, agency_id) VALUES (${email}, ${fullName}, ${hashPassword(password)}, ${role}, ${status}, ${agencyId}) RETURNING id, email, full_name, role, status, agent_code, agency_id`;
       user = inserted[0];
-      // Self-service onboarding: active agency invitations authorize agent signup.
-      // New agency workspaces are activated immediately; platform-admin bootstrap remains email-restricted.
-      if (role === "agent" || role === "agency_admin") {
-        await sql`INSERT INTO training_enrollments (course_id,user_id,agency_id,assigned_by)
-          SELECT id,${user.id},${agencyId},NULL FROM training_courses WHERE is_published=true
-          ON CONFLICT (course_id,user_id) DO NOTHING`;
-      }
+      // Training enrollment is deferred until verified paid access is granted and the learner opens the Academy.
     }
     const agency = user.agency_id ? (await sql`SELECT agency_name, agency_code, status FROM agencies WHERE id = ${user.agency_id} LIMIT 1`)[0] || null : null;
     const response = NextResponse.json({ user, agency, message: user.status === "active" ? "Your account is ready. Published academy courses have been added to your learning dashboard." : "Registration received." });
