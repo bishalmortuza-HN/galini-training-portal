@@ -11,7 +11,7 @@ type Payment={id:string;user_id?:string|null;agency_id?:string|null;plan:string;
 type Quote={id:string;customer_name:string;line_of_business:string;status:string;created_at:string;agent_name?:string;reviewer_note?:string|null;reviewed_at?:string|null;reviewer_name?:string;risk_data?:any};
 type Assessment={id:string;course_id:string;title:string;instructions:string;passing_score:number;questions:{prompt:string;choices:string[]}[]};
 type Certificate={id:string;course_title:string;certificate_code:string;issued_at:string};
-type ExamAttempt={id:string;score:number;passed:boolean;submitted_at:string;user_id:string;full_name:string;email:string;agency_name?:string;course_title:string;assessment_title:string;passing_score:number};
+type ExamAttempt={id:string;score:number;passed:boolean;submitted_at:string;full_name?:string;email:string;agency_name?:string;course_title:string;assessment_title:string;passing_score:number};
 const nice=(v?:string)=>v==="submitted"?"Submitted for review":v==="reviewed"?"Approved":v==="needs_revision"?"Revision requested":v==="completed"?"Review completed":v?v.replaceAll("_"," ").replace(/\b\w/g,x=>x.toUpperCase()):"Pending";
 const roleName=(r:string)=>r==="platform_admin"?"Site administrator":r==="agency_admin"?"Agency administrator":"Agent";
 async function api(path:string,method="GET",body?:any){const r=await fetch(path,{method,credentials:"same-origin",headers:body?{"Content-Type":"application/json"}:undefined,body:body?JSON.stringify(body):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"Request failed.");return d;}
