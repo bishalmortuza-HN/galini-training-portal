@@ -25,7 +25,7 @@ SET questions =
  COALESCE((
   SELECT jsonb_agg(item.question ORDER BY item.ordinality)
   FROM jsonb_array_elements(a.questions) WITH ORDINALITY AS item(question, ordinality)
-  WHERE lower(trim(item.question->>'prompt')) NOT IN ('a submission is missing an important supporting document. what is the correct response?','which is the best way to handle an underwriting question you cannot verify?','a client selects a quote with different limits than the alternative. what should the proposal show?','an application value conflicts with a supporting document. what is the correct action?','what should be reviewed before recommending one quote over another?','a risk has an unusual operation that may affect eligibility. what should the agent do?','when is it appropriate to tell a client coverage is bound?','what makes an account file useful for a future audit or service request?')
+  WHERE lower(trim(item.question->>'prompt')) NOT IN ('a submission is missing an important supporting document. what is the correct response?','which is the best way to handle an underwriting question you cannot verify?','a client selects a quote with different limits than the alternative. what should the proposal show?','an application value conflicts with a supporting document. what is the correct action?','what should be reviewed before recommending one quote over another?','a risk has an unusual operation that may affect eligibility. what should the agent do?','when is it appropriate to tell a client coverage is bound?','what makes an account file useful for a future audit or service request?', 'a quote comparison should include:')
  ), '[]'::jsonb) || updates.additions
 FROM training_courses AS c
 JOIN question_updates AS updates ON updates.course_title = c.title
