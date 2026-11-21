@@ -1,10 +1,12 @@
 import {NextRequest,NextResponse} from "next/server";
 import {actorFor} from "@/lib/auth";
+import {hasPaidAccess,paymentRequiredResponse} from "@/lib/membership-access";
 
 export async function POST(req:NextRequest){
  const actor=await actorFor(req);
  if(!actor)return NextResponse.json({error:"Sign in to use the Insurance Learning Tutor."},{status:401});
  if(!["active","approved"].includes(actor.status))return NextResponse.json({error:"Your account is awaiting approval."},{status:403});
+ if(!(await hasPaidAccess(actor)))return NextResponse.json(paymentRequiredResponse(),{status:402});
  if(!process.env.OPENAI_API_KEY)return NextResponse.json({error:"AI tutor setup is not finished. Add OPENAI_API_KEY to the Galini Training Vercel project environment, then redeploy the preview."},{status:503});
  const body=await req.json().catch(()=>null);
  const question=String(body?.question||"").trim().slice(0,4000);
