@@ -1,18 +1,12 @@
 import { sql } from "@/lib/db";
 
-type MembershipActor = {
-  id: string;
-  role: string;
-  agency_id: string | null;
-};
-
 /**
  * Paid access is granted only by a verified payment record.
  * Agency-wide payments (user_id IS NULL) unlock the agency and its agents.
  * A verified agent-specific payment unlocks only that agent.
  * Platform administrators retain operational access.
  */
-export async function hasPaidAccess(actor: MembershipActor): Promise<boolean> {
+export async function hasPaidAccess(actor: { id: string; role: string; agency_id: string | null } | any): Promise<boolean> {
   if (actor.role === "platform_admin") return true;
   if (!actor.agency_id) return false;
 
