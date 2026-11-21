@@ -38,6 +38,7 @@ export async function POST(req:NextRequest){
 
 export async function PATCH(req:NextRequest){
  const a=await actorFor(req);if(!a)return NextResponse.json({error:"Sign in required."},{status:401});
+ if(!(await hasPaidAccess(a)))return NextResponse.json(paymentRequiredResponse(),{status:402});
  const b=await req.json().catch(()=>null);if(!b?.id)return NextResponse.json({error:"Submission id required."},{status:400});
  const note=String(b.note||"").slice(0,2000);
  try{
