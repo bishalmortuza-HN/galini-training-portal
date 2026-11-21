@@ -2,11 +2,13 @@ import {NextRequest,NextResponse} from "next/server";
 import {sql} from "@/lib/db";
 import {actorFor} from "@/lib/auth";
 import {ratePractice} from "@/lib/practice-rating";
+import { hasPaidAccess, paymentRequiredResponse } from "@/lib/membership-access";
 
 const supported=["Personal Homeowners","Personal Auto","Personal Umbrella","Personal Renters","Personal Condo","Personal Motorcycle","Commercial Package (BOP)","Commercial Package Policy (CPP)","Commercial Auto","General Liability","Workers Compensation","Commercial Umbrella","Professional Liability (E&O)","Cyber Liability","Liquor Liability","Garage Liability","Inland Marine"];
 
 export async function GET(req:NextRequest){
  const a=await actorFor(req);if(!a)return NextResponse.json({error:"Sign in required."},{status:401});
+ if(!(await hasPaidAccess(a)))return NextResponse.json(paymentRequiredResponse(),{status:402});
  try{
   const rows=a.role==="platform_admin"
    ?await sql`SELECT q.*,p.full_name AS agent_name,p.email,g.agency_name,rv.full_name AS reviewer_name FROM quote_practice_submissions q JOIN profiles p ON p.id=q.agent_id LEFT JOIN agencies g ON g.id=q.agency_id LEFT JOIN profiles rv ON rv.id=q.reviewed_by ORDER BY q.created_at DESC`
@@ -20,6 +22,7 @@ export async function GET(req:NextRequest){
 export async function POST(req:NextRequest){
  const a=await actorFor(req);if(!a)return NextResponse.json({error:"Sign in required."},{status:401});
  if(!["active","approved"].includes(a.status))return NextResponse.json({error:"Account approval is required."},{status:403});
+ if(!(await hasPaidAccess(a)))return NextResponse.json(paymentRequiredResponse(),{status:402});
  const b=await req.json().catch(()=>null);
  if(!b?.customer_name||!b?.line_of_business)return NextResponse.json({error:"Applicant and line of business are required."},{status:400});
  if(!supported.includes(String(b.line_of_business)))return NextResponse.json({error:"Choose a supported practice line."},{status:400});
