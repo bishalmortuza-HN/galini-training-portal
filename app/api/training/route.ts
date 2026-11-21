@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { actorFor } from "@/lib/auth";
+import { hasPaidAccess, paymentRequiredResponse } from "@/lib/membership-access";
 
 export async function GET(request: NextRequest) {
   const actor = await actorFor(request);
   if (!actor) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
   if (!["active","approved"].includes(actor.status)) return NextResponse.json({ error: "Your account is awaiting approval." }, { status: 403 });
+  if (!(await hasPaidAccess(actor))) return NextResponse.json(paymentRequiredResponse(), { status: 402 });
   try {
     // Keep every active learner automatically enrolled in every currently published course.
     // This also picks up courses published after the account was created.
@@ -31,6 +33,7 @@ export async function POST(request: NextRequest) {
   const actor = await actorFor(request);
   if (!actor) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
   if (!["active","approved"].includes(actor.status)) return NextResponse.json({ error: "Account approval is required." }, { status: 403 });
+  if (!(await hasPaidAccess(actor))) return NextResponse.json(paymentRequiredResponse(), { status: 402 });
   const body = await request.json().catch(() => null);
   try {
     if (body?.action === "self_enroll") {
