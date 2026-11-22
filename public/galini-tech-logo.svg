@@ -1,13 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 220" role="img" aria-labelledby="title desc">
-<title id="title">Galini Tech</title><desc id="desc">Galini Tech brand mark with a digital G orbit in forest green, crema and tomato red.</desc>
-<defs><linearGradient id="orbit" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#D65B45"/><stop offset="1" stop-color="#F0A18D"/></linearGradient></defs>
-<g transform="translate(18 12)">
-<path d="M142 29A78 78 0 1 0 174 143" fill="none" stroke="#F5EFE5" stroke-width="22" stroke-linecap="round"/>
-<path d="M116 104h66v20h-48c-4 20-22 34-44 34-29 0-51-23-51-52s23-52 52-52c15 0 29 6 39 17" fill="none" stroke="#F5EFE5" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M13 137C48 117 102 87 180 45" fill="none" stroke="url(#orbit)" stroke-width="13" stroke-linecap="round"/>
-<rect x="172" y="16" width="17" height="17" rx="2" fill="#D65B45"/><rect x="195" y="1" width="11" height="11" rx="1.5" fill="#F0A18D"/><rect x="199" y="35" width="10" height="10" rx="1.5" fill="#D65B45"/><rect x="155" y="4" width="10" height="10" rx="1.5" fill="#F5EFE5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 270" role="img" aria-labelledby="t d"><title id="t">GALINI TECH</title><desc id="d">Galini Tech circular G orbit emblem with digital pixel squares and custom wordmark.</desc>
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#285642"/><stop offset="1" stop-color="#183c30"/></linearGradient><linearGradient id="s" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#d65b45"/><stop offset="1" stop-color="#ef9b83"/></linearGradient></defs>
+<g transform="translate(24 8)">
+<path d="M174 64A112 112 0 1 0 184 187" fill="none" stroke="url(#g)" stroke-width="47" stroke-linecap="butt"/>
+<path d="M176 132h-68" fill="none" stroke="#285642" stroke-width="47" stroke-linecap="butt"/>
+<path d="M16 184 202 64" fill="none" stroke="url(#s)" stroke-width="20" stroke-linecap="round"/>
+<path d="M164 88 190 64" fill="none" stroke="#f5efe5" stroke-width="17"/>
+<rect x="202" y="19" width="26" height="26" rx="1" fill="#d65b45"/><rect x="236" y="0" width="18" height="18" rx="1" fill="#ef9b83"/><rect x="242" y="55" width="17" height="17" rx="1" fill="#d65b45"/><rect x="189" y="0" width="16" height="16" rx="1" fill="#285642"/><rect x="218" y="87" width="15" height="15" rx="1" fill="#d65b45"/>
 </g>
-<text x="250" y="112" fill="#F5EFE5" font-family="Arial, Helvetica, sans-serif" font-size="82" font-weight="800" letter-spacing="7">GALINI</text>
-<path d="M255 151h54M648 151h54" stroke="#D65B45" stroke-width="5" stroke-linecap="round"/>
-<text x="329" y="166" fill="#D65B45" font-family="Arial, Helvetica, sans-serif" font-size="35" font-weight="700" letter-spacing="18">TECH</text>
+<text x="295" y="155" fill="#183c30" font-family="Arial,Helvetica,sans-serif" font-size="106" font-weight="900" letter-spacing="3">GALINI</text>
+<path d="M302 204h60M672 204h60" stroke="#d65b45" stroke-width="6" stroke-linecap="square"/>
+<text x="385" y="222" fill="#d65b45" font-family="Arial,Helvetica,sans-serif" font-size="48" font-weight="700" letter-spacing="20">TECH</text>
 </svg>
