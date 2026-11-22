@@ -656,3 +656,11 @@ button:disabled{cursor:not-allowed;opacity:.58;transform:none!important}
  .panelHead{align-items:flex-start}
  .quoteProductNav{max-width:100%}
 }
+
+/* The supplied poster lockup is vertically stacked; keep that proportion in the portal. */
+.brandLogo{width:156px;max-width:100%;height:auto;filter:none!important}
+.authIntro .brand{justify-content:flex-start}
+.authIntro .brandLogo{width:168px;padding:8px;background:#fff;border-radius:14px}
+.sidebar .brand{justify-content:center;padding:4px 8px 22px}
+.sidebar .brandLogo{width:142px;padding:7px;background:#fff;border-radius:12px}
+@media(max-width:700px){.authIntro .brandLogo{width:142px}.sidebar .brand{justify-content:flex-start}.sidebar .brandLogo{width:108px}}
