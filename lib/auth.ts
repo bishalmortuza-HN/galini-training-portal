@@ -20,8 +20,8 @@ export function verifyPassword(password: string, stored: string) {
   const expectedBuffer = Buffer.from(expected, "hex");
   return actual.length === expectedBuffer.length && timingSafeEqual(actual, expectedBuffer);
 }
-export function makeSession(userId: string) {
-  const payload = Buffer.from(JSON.stringify({ sub: userId, exp: Date.now() + 1000 * 60 * 60 * 24 * 7 })).toString("base64url");
+export function makeSession(userId: string, authVersion = 0) {
+  const payload = Buffer.from(JSON.stringify({ sub: userId, exp: Date.now() + 1000 * 60 * 60 * 24 * 7, ver: authVersion })).toString("base64url");
   const signature = createHmac("sha256", secret()).update(payload).digest("base64url");
   return `${payload}.${signature}`;
 }
@@ -37,14 +37,15 @@ export async function actorFor(request: NextRequest) {
   let received: Buffer;
   try { received = Buffer.from(signature, "base64url"); } catch { return null; }
   if (received.length !== expected.length || !timingSafeEqual(received, expected)) return null;
-  let claims: { sub?: string; exp?: number };
+  let claims: { sub?: string; exp?: number; ver?: number };
   try { claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")); } catch { return null; }
   if (!claims.sub || !claims.exp || claims.exp < Date.now()) return null;
-  const rows = await sql`SELECT p.id, p.email, p.full_name, p.role, p.status, p.agent_code, p.agency_id, g.status AS agency_status FROM profiles p LEFT JOIN agencies g ON g.id=p.agency_id WHERE p.id = ${claims.sub} LIMIT 1`;
+  const rows = await sql`SELECT p.id, p.email, p.full_name, p.role, p.status, p.agent_code, p.agency_id, p.auth_version, g.status AS agency_status FROM profiles p LEFT JOIN agencies g ON g.id=p.agency_id WHERE p.id = ${claims.sub} LIMIT 1`;
   const actor = rows[0] || null;
   // Suspended members and suspended agency accounts are blocked on every protected API route.
   if (actor?.status === "suspended" || actor?.agency_status === "suspended") return null;
-  if (actor) delete actor.agency_status;
+  if (actor && Number(actor.auth_version ?? 0) !== Number(claims.ver ?? 0)) return null;
+  if (actor) { delete actor.agency_status; delete actor.auth_version; }
   return actor;
 }
 export { COOKIE };
