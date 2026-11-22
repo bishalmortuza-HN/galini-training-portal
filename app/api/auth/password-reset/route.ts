@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     if (!users.length) return NextResponse.json({ ok: true, message: genericMessage });
 
     const user = users[0];
-    const recent = await sql`SELECT id FROM password_reset_tokens WHERE user_id = ${user.id} AND created_at > now() - interval '60 seconds' ORDER BY created_at DESC LIMIT 1`;
+    const recent = await sql`SELECT id FROM password_reset_tokens WHERE user_id = ${user.id} AND used_at IS NULL AND created_at > now() - interval '60 seconds' ORDER BY created_at DESC LIMIT 1`;
     if (recent.length) return NextResponse.json({ ok: true, message: genericMessage });
 
     const token = randomBytes(32).toString("hex");
