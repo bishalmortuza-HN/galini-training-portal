@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       RETURNING user_id
     )
     UPDATE profiles AS p
-    SET password_hash = ${nextHash}, updated_at = now()
+    SET password_hash = ${nextHash}, auth_version = auth_version + 1, updated_at = now()
     FROM consumed
     WHERE p.id = consumed.user_id
     RETURNING p.id`;
