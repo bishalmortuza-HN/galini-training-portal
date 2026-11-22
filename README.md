@@ -1,41 +1,46 @@
 # Galini Training Portal
 
-A unified role-based training and agency workspace for platform administrators, agency administrators, and insurance agents.
+A role-based training and agency workspace for platform administrators, agency administrators, and insurance agents.
 
 ## Stack
-- Next.js 15 / React 19
+- Next.js 15.5.29 / React 19
 - Neon PostgreSQL via `@neondatabase/serverless`
 - Galini-managed authentication using scrypt password hashes and signed HttpOnly session cookies
-- Vercel preview deployment from the `galini-unified-portal` branch
+- Vercel Preview deployment from `galini-unified-portal`
 
 ## Portal modules
-- **Site administration:** agency and agent approvals, membership oversight, payment review, and training progress.
-- **Training academy:** six published commercial-insurance courses, 24 lessons, six assessments, lesson completion tracking, and course certificates.
-- **Payment status:** Standard ($10) and Premium ($50) membership records, transaction-reference submission, and manual admin verification/rejection.
-- **Quote practice:** guided five-stage applicant intake, exposure collection, coverage selection, underwriting notes, and quote/bind checklist. This is a training simulator only; it does not send live carrier submissions or bind coverage.
+- **Site administration:** agency and member oversight, membership payment review, training progress, and assessment reporting.
+- **Training academy:** 14 published commercial-insurance courses, 60 lessons, 60 section assessments, lesson completion tracking, and course certificates.
+- **Membership:** Standard Pack ($15/month or $100/year) and Platinum ($55/month or $600/year).
+- **Quote Practice:** guided applicant intake, exposure collection, coverage selection, training-only rating indications, underwriting notes, and proposal/bind checklists.
+- **Health checks:** `/api/health/db` and `/api/health/academy`.
 
-## Initial administrator
-The preview-only `GALINI_PLATFORM_ADMIN_EMAIL` environment variable is the allow-listed first-admin email. The first account registered with that exact email can select **Platform administrator** during registration. Only that address receives the initial administrator role. The configured email can be changed later in Vercel preview environment settings.
+Quote Practice is an educational simulator. It does not send submissions to carriers, return carrier quotes, or bind insurance coverage.
 
-## Agency onboarding
-1. Register as an agency administrator and enter the agency name.
-2. The platform administrator approves the agency and its administrator account.
-3. The agency administrator shares the generated agency invitation code with agents.
-4. Agents register using that code and wait for approval.
-5. Agency administrators assign published courses and monitor progress.
+## Accounts and access
+- The initial platform administrator is restricted to the email configured in the Preview-only `GALINI_PLATFORM_ADMIN_EMAIL` variable during first-admin bootstrap. A platform administrator already exists in the Preview database.
+- Agency administrators register with an agency name. The portal creates the agency and invitation code.
+- Agents register with an active agency invitation code.
+- Training and Quote Practice remain locked until the relevant membership payment is verified by a platform administrator.
+- The platform administrator can review payment records and manage agency/member access.
 
-## Database
-The Neon preview schema is applied. It includes agencies, profiles, memberships, auth tokens, courses, enrollments, lessons, lesson completions, assessments, assessment attempts, certificates, payment transactions, and quote-practice submissions/steps. Six courses, 24 lessons, and six assessments are seeded and published.
+## Payments
+Payments currently use manual transaction-reference submission (bank transfer / Payoneer) followed by administrator verification. There is no live checkout, payment gateway callback, or automatic payment verification. Do not describe payment as automatically processed.
 
-The read-only health endpoints are:
-- `/api/health/db` — Neon connection status
-- `/api/health/academy` — published course, lesson, and assessment counts
+## Password recovery and email
+The password-reset flow uses a random one-time token, stores only its SHA-256 hash, expires after 30 minutes, and invalidates existing sessions when the password is changed.
 
-## External services not yet connected
-- **Payoneer:** payment references and review statuses are stored, but there is no live Payoneer checkout or automatic payment verification.
-- **SMTP/email:** account verification and password-reset token tables exist, but email delivery is not active until SMTP credentials are configured. Do not describe email verification or password reset as operational yet.
+To enable email delivery, add these **Preview-only** Vercel environment variables for the `galini-unified-portal` branch:
+- `RESEND_API_KEY` — Resend API key (secret)
+- `RESEND_FROM_EMAIL` — sender address on a verified Resend domain
+- `GALINI_APP_URL` — `https://galini-training-git-galini-unified-portal-team-desh.vercel.app`
 
-## Deployment safety
-- Work only on `galini-unified-portal` until the user explicitly approves production.
-- Do not modify V1 or the production `main` branch.
-- The preview uses the existing Galini Vercel project and Neon integration; do not create a separate admin portal.
+Password reset email delivery is not operational until those values are configured and the Preview deployment is rebuilt. Email verification is not currently required or implemented.
+
+## Optional AI tutor
+An API route is present for the Insurance Learning Tutor, but the current training interface does not expose a tutor panel. It also requires a valid Preview `OPENAI_API_KEY`; that variable is currently blank. Do not advertise the AI tutor as available until it is configured and tested.
+
+## Database and deployment safety
+- The Preview Neon schema contains agencies, profiles, membership/payment records, training courses, lessons, enrollments, lesson completions, assessments, assessment attempts, certificates, and quote-practice submissions/steps.
+- Work only on `galini-unified-portal` and the Preview Neon branch `preview/galini-unified-portal` until the user explicitly approves Production.
+- Do not modify the Production `main` branch, Production database, or Production deployment without explicit approval.
