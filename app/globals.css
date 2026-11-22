@@ -325,3 +325,160 @@ body{background:var(--galini-cream);color:#26352d;font-family:'DM Sans',sans-ser
 .insuranceTutor{border-color:#e6d8c5;background:linear-gradient(145deg,#faf6ef,#fff)}
 .tutorPrompts button{border-color:#d8e3d8;color:#285642}
 .tutorAnswer b{color:#285642}
+
+
+/* Galini Tech — refined product interface */
+:root{
+ --ink:#20372c;--muted:#758278;--line:#e6e0d5;--paper:#f4eee4;
+ --purple:#285642;--navy:#183c30;--galini-cream:#f5efe5;
+ --galini-forest:#285642;--galini-tomato:#d65b45;--galini-sage:#e7eee6;
+ --surface:#fffdf9;--shadow-soft:0 12px 34px rgba(31,57,43,.07);
+}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink)}
+button,input,select,textarea{font:inherit}
+button{transition:background .18s ease,color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #d65b4566;outline-offset:2px}
+.appShell{grid-template-columns:268px minmax(0,1fr);background:var(--paper)}
+.sidebar{position:sticky;top:0;height:100vh;min-height:100vh;padding:26px 18px 20px;background:linear-gradient(180deg,#183c30 0%,#214b39 100%);box-shadow:8px 0 28px rgba(24,60,48,.08)}
+.sidebar .brand{min-height:64px;padding:0 7px 30px;letter-spacing:0}
+.brandLogo{display:block;width:210px;max-width:100%;height:auto}
+.sidebar .brandLogo{width:205px}
+.workspaceTag{padding:0 12px 13px;color:#c0d0c1;font-size:9px;letter-spacing:.2em}
+.sidebar nav{gap:7px}
+.navItem{min-height:44px;padding:12px 13px;border-radius:11px;color:#d2ddd3;font-size:12px}
+.navItem.active{background:#35634b;box-shadow:inset 3px 0 #d65b45,0 5px 15px #102c2025;color:#fff}
+.navItem:hover{background:#2d5942;color:#fff;transform:translateX(2px)}
+.navItem b{background:var(--galini-tomato);color:white}
+.helpBox{border:1px solid #ffffff17;background:#214a38;padding:16px;border-radius:14px}
+.helpBox strong{color:#fff}
+.helpBox p{overflow-wrap:anywhere}
+.signout{border-radius:9px}
+.signout:hover{background:#ffffff12;color:#fff}
+.mainArea{min-width:0;background:radial-gradient(ellipse at 88% 0%,#efe7d8 0,transparent 32%),var(--paper)}
+.topbar{position:sticky;top:0;z-index:20;height:74px;padding:0 clamp(20px,3.2vw,48px);background:rgba(255,253,249,.92);border-bottom:1px solid #e6e0d5;backdrop-filter:blur(16px)}
+.crumb{color:#a1a092;letter-spacing:.15em}
+.userPill{padding:7px 11px 7px 7px;border:1px solid #ece6db;border-radius:40px;background:#fffdf9}
+.avatar{background:#e6eee5;color:#285642}
+.content{max-width:1500px;padding:38px clamp(18px,3.2vw,48px) 48px}
+.pageHeading{margin-bottom:30px;align-items:center}
+.pageHeading h1{color:#1d392d;font-size:clamp(25px,2.2vw,34px);letter-spacing:-.045em}
+.pageHeading .eyebrow{color:#b45a45}
+.status{border:1px solid #e8dfd1;background:#f8edda;color:#93652e;padding:7px 12px}
+.status.active{background:#e7efe5;border-color:#d6e3d4;color:#285642}
+.statGrid{gap:17px;margin-bottom:24px}
+.statCard,.panel{border:1px solid #e9e2d7;border-radius:17px;background:var(--surface);box-shadow:var(--shadow-soft)}
+.statCard{position:relative;overflow:hidden;padding:21px;transition:transform .2s ease,box-shadow .2s ease}
+.statCard:after{content:"";position:absolute;right:-28px;top:-32px;width:95px;height:95px;border-radius:50%;background:#e9efe6;opacity:.55}
+.statCard:hover{transform:translateY(-3px);box-shadow:0 16px 38px rgba(31,57,43,.11)}
+.statCard p{position:relative;z-index:1;color:#788278}
+.statCard strong{position:relative;z-index:1;color:#20372c;font-size:25px}
+.statIcon{position:relative;z-index:1;border-radius:11px}
+.violet{background:#e8eee5;color:#285642}.blue{background:#f9e9e4;color:#b74e3d}.green{background:#e6eee5;color:#285642}.amber{background:#f7efdf;color:#a16e32}
+.panel{margin-bottom:22px}
+.panelHead{padding:22px 24px}
+.panelHead h3{color:#20372c;font-size:16px}
+.panelHead p{color:#81877d}
+.attentionGrid{gap:13px;padding:0 24px 23px}
+.attentionGrid button{border-color:#ebe5da;border-radius:12px;background:#fbf8f2;padding:15px;transition:all .18s ease}
+.attentionGrid button:hover{border-color:#c9d8c8;background:#f4f7f1;transform:translateY(-2px)}
+.attentionIcon{background:#e7eee5;color:#285642;border-radius:10px}
+.attentionGrid b{color:#d65b45}
+.tableWrap{border-top:1px solid #f0ebe2}
+th{background:#f8f5ee;color:#8b9087;padding:14px 20px}
+td{border-top:1px solid #f0ebe2;color:#647167;padding:15px 20px}
+td:first-child{color:#293e32}
+tbody tr:hover{background:#fbf8f2}
+.smallPrimary{border-radius:8px;background:#285642}
+.primary,.smallPrimary{background:#285642;border-radius:10px;box-shadow:0 5px 12px rgba(40,86,66,.12)}
+.primary:hover,.smallPrimary:hover{background:#1d4634;box-shadow:0 8px 18px rgba(40,86,66,.2);transform:translateY(-1px)}
+.primary:disabled,.smallPrimary:disabled{transform:none;box-shadow:none}
+.textButton,.switchMode button{color:#285642}
+.notice{border-radius:12px;border-color:#e7e0d4;background:#fbf8f2}
+.notice.error{background:#fff1ed;border-color:#f0c9bd;color:#a74434}
+.emptyState{border:1px dashed #ded6c8;background:#fbf8f2;border-radius:12px;color:#7d887d}
+.footer{color:#8c9388}
+.authShell{grid-template-columns:minmax(0,1.08fr) minmax(420px,.92fr);background:#f5efe5}
+.authIntro{position:relative;isolation:isolate;overflow:hidden;padding:42px clamp(28px,5vw,76px);background:radial-gradient(circle at 80% 18%,#47765d88,transparent 30%),linear-gradient(145deg,#183c30 0%,#285642 60%,#234a38 100%)}
+.authIntro:after{content:"";position:absolute;z-index:-1;right:-180px;bottom:-260px;width:540px;height:540px;border:1px solid #f5efe51a;border-radius:50%;box-shadow:0 0 0 42px #f5efe509,0 0 0 86px #f5efe507}
+.authIntro .brand{padding:0}
+.authIntro .brandLogo{width:245px}
+.introCopy{max-width:610px;margin:58px 0}
+.introCopy h1{max-width:560px;font-size:clamp(38px,4.5vw,62px);line-height:1.08;letter-spacing:-.055em}
+.introCopy p:not(.eyebrow){color:#d6e1d6;max-width:520px}
+.introCopy>div>div{background:#f5efe5!important;border:1px solid #f5efe555!important;box-shadow:0 8px 22px #102c2015}
+.introCopy>div>div strong{color:#234b38}
+.introCopy>div>div span{color:#657469;opacity:1!important}
+.introFoot{color:#c7d6c9}
+.authPanel{padding:44px 28px;background:linear-gradient(135deg,#f7f1e8,#fffdf9)}
+.authCard{width:min(460px,100%);padding:clamp(24px,3vw,38px);border:1px solid #e8e1d5;border-radius:22px;background:#fffdf9;box-shadow:0 20px 60px rgba(37,61,45,.09)}
+.authCard .eyebrow{color:#b85a45}
+.authCard h2{color:#1d392d;font-size:34px}
+.form{gap:16px;margin:26px 0 18px}
+.form label{color:#536458}
+.form input,.form select{border:1px solid #e2ddd2;border-radius:10px;padding:13px 14px;background:#fffefa;color:#263b30}
+.form input:focus,.form select:focus{border-color:#47765d;box-shadow:0 0 0 3px #47765d20}
+.switchMode{margin-top:20px}
+.trainingPage{gap:22px}
+.courseGrid{gap:16px}
+.courseCard,.enrollmentCard{border-color:#e9e2d7;border-radius:14px;background:#fffdf9;box-shadow:0 5px 18px rgba(31,57,43,.04);transition:transform .18s ease,box-shadow .18s ease}
+.courseCard:hover,.enrollmentCard:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(31,57,43,.08)}
+.courseMeta,.courseCard a,.enrollmentBottom a{color:#285642}
+.published{background:#e7efe5;color:#285642}
+.draft{background:#f9eddd;color:#9a6a2e}
+.courseCard h4,.enrollmentCard h4{color:#233d30}
+.courseCard p,.enrollmentCard p{color:#758278}
+.progressTrack{background:#eceee7}
+.progressTrack span{background:linear-gradient(90deg,#285642,#83a486)}
+.courseForm input,.courseForm textarea,.courseForm select,.assignForm select,.enrollmentBottom select{border-color:#e2ddd2;border-radius:9px;background:#fffefa}
+.quoteStudio{color:#253b30}
+.quoteStudioTop,.quoteProductNav,.quoteProductMain,.quoteResult{border-radius:16px}
+.quoteStudioTop{background:linear-gradient(130deg,#183c30,#285642);color:#f5efe5}
+.quoteStudioTop .eyebrow{color:#e8c9a7}
+.quoteStudioTop h2{color:#fff}
+.quoteMode{border-color:#ffffff2b;background:#ffffff14;color:#f5efe5}
+.quoteProductNav,.quoteProductMain,.quoteResult{border-color:#e8e1d6;background:#fffdf9}
+.quoteProductNav button.selected{background:#e7eee5;color:#285642;border-color:#cdddcf}
+.quoteStepper button.active{color:#285642;border-color:#b9cdbb}
+.quoteStepper button.done span,.quoteStepper button.active span{background:#285642;color:#fff}
+.quoteProductTitle h3{color:#20372c}
+.quoteDisclosure{border-color:#e8dfd1;background:#f8f4ec;color:#69756b}
+.quoteResultHead{background:#e8efe6;border-color:#dce7da}
+.quoteResultHead h3{color:#285642}
+@media(max-width:1000px){
+ .appShell{grid-template-columns:220px minmax(0,1fr)}
+ .sidebar .brandLogo{width:180px}
+ .content{padding:30px 22px 40px}
+ .authShell{grid-template-columns:1fr 1fr}
+}
+@media(max-width:700px){
+ .appShell{display:block}
+ .sidebar{position:relative;height:auto;min-height:0;padding:15px 14px 12px;box-shadow:0 5px 18px rgba(24,60,48,.12)}
+ .sidebar .brand{min-height:0;padding:0 5px 13px}
+ .sidebar .brandLogo{width:174px}
+ .sidebar nav{display:flex;overflow-x:auto;gap:6px;padding:0 0 3px;scrollbar-width:thin}
+ .navItem{min-height:39px;flex:0 0 auto;padding:9px 12px;font-size:11px}
+ .navItem.active{box-shadow:inset 0 -3px #d65b45}
+ .topbar{height:60px;padding:0 14px}
+ .userPill{border:0;background:transparent;padding:0}
+ .content{padding:23px 14px 34px}
+ .pageHeading{align-items:flex-start;gap:10px}
+ .statGrid{gap:10px}
+ .statCard{padding:15px;border-radius:13px}
+ .statCard strong{font-size:20px}
+ .panel{border-radius:14px}
+ .panelHead{padding:17px}
+ .attentionGrid{padding:0 14px 15px}
+ .authShell{display:flex;flex-direction:column}
+ .authIntro{min-height:0;padding:25px 22px 22px}
+ .authIntro .brandLogo{width:205px}
+ .introCopy{margin:32px 0 14px}
+ .introCopy h1{font-size:34px}
+ .introCopy>div{grid-template-columns:1fr 1fr!important;gap:9px!important;margin-top:18px!important}
+ .introCopy>div>div{padding:12px!important}
+ .introFoot{display:block;margin-top:8px}
+ .authPanel{padding:24px 14px 32px}
+ .authCard{padding:23px 19px;border-radius:18px}
+ .authCard h2{font-size:29px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
