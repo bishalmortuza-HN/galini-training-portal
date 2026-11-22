@@ -482,3 +482,109 @@ tbody tr:hover{background:#fbf8f2}
  .authCard h2{font-size:29px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+
+/* Complete Galini Tech visual system: shared by every portal workspace */
+:root{--ink:#183c30;--muted:#69796e;--line:#e7e0d5;--paper:#f5efe5;--surface:#fffdf9;--purple:#285642;--navy:#183c30;--galini-forest:#285642;--galini-tomato:#d65b45;--galini-cream:#f5efe5;--shadow-soft:0 14px 38px rgba(24,60,48,.075)}
+body{background:var(--paper);color:var(--ink);font-family:Inter,"DM Sans",Arial,sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer;transition:all .18s ease}
+:focus-visible{outline:3px solid #d65b4566;outline-offset:2px}
+.brandLogo{display:block;width:220px;max-width:100%;height:auto;object-fit:contain}
+.authIntro .brandLogo{width:250px;filter:brightness(0) invert(1)}
+.sidebar .brandLogo{width:205px;filter:brightness(0) invert(1)}
+.authShell{background:#f5efe5;grid-template-columns:minmax(0,1.05fr) minmax(420px,.95fr)}
+.authIntro{background:radial-gradient(ellipse at 85% 15%,#52765d 0,transparent 38%),linear-gradient(145deg,#183c30,#285642);padding:42px clamp(26px,5vw,76px);position:relative;overflow:hidden}
+.authIntro:after{content:"";position:absolute;right:-190px;bottom:-260px;width:560px;height:560px;border:1px solid #ffffff18;border-radius:50%;box-shadow:0 0 0 42px #ffffff08,0 0 0 86px #ffffff06;pointer-events:none}
+.authIntro .brand,.sidebar .brand{position:relative;z-index:1}
+.introCopy{position:relative;z-index:1;max-width:620px}
+.introCopy .eyebrow{color:#efaa95}
+.introCopy h1{font-size:clamp(36px,4.3vw,60px);line-height:1.08;letter-spacing:-.05em}
+.introCopy p:not(.eyebrow){color:#d6e1d7;line-height:1.8}
+.introFoot{color:#d4dfd5}
+.authPanel{background:linear-gradient(145deg,#f5efe5,#fffdf9);padding:40px 26px}
+.authCard{width:min(470px,100%);border:1px solid #e7e0d5;border-radius:22px;background:#fffdf9;box-shadow:0 24px 70px #183c3012;padding:clamp(24px,3vw,40px)}
+.authCard h2{color:#183c30;letter-spacing:-.04em}
+.authCard .eyebrow,.eyebrow{color:#b95a45}
+.form label{color:#53665a;font-weight:650}
+.form input,.form select,.form textarea,.courseForm input,.courseForm textarea,.courseForm select,.assignForm select,.enrollmentBottom select{border:1px solid #dedfd4;border-radius:10px;background:#fffefa;color:#203b2d;padding:12px 14px}
+.form input:focus,.form select:focus,.form textarea:focus{border-color:#5e886d;box-shadow:0 0 0 3px #5e886d22}
+.primary,.smallPrimary{background:#285642;color:white;border:1px solid #285642;border-radius:10px;box-shadow:0 5px 14px #28564220}
+.primary:hover,.smallPrimary:hover{background:#183c30;border-color:#183c30;transform:translateY(-1px);box-shadow:0 8px 18px #183c3030}
+.textButton,.switchMode button{color:#285642}
+.notice{border:1px solid #e7dfd2;border-radius:12px;background:#fbf8f2;color:#526458}
+.notice.error,.error{background:#fff0ec;border-color:#efc8bd;color:#a94434}
+.appShell{grid-template-columns:268px minmax(0,1fr);background:#f5efe5}
+.sidebar{position:sticky;top:0;height:100vh;min-height:100vh;padding:24px 18px;background:linear-gradient(180deg,#183c30,#285642);box-shadow:8px 0 28px #183c3010}
+.sidebar .brand{padding:4px 8px 28px}
+.workspaceTag{color:#c3d3c6;letter-spacing:.2em}
+.sidebar nav{gap:6px}
+.navItem{border-radius:11px;color:#d8e2d9;padding:12px 13px}
+.navItem:hover{background:#ffffff16;color:#fff;transform:translateX(2px)}
+.navItem.active{background:#3b694e;color:#fff;box-shadow:inset 3px 0 #d65b45}
+.navItem b{background:#d65b45;color:#fff}
+.helpBox{background:#214b38;border:1px solid #ffffff18;border-radius:14px}
+.helpBox strong{color:#fff}.helpBox p{color:#d0ded2}
+.signout{border-radius:9px;color:#d6e1d7}.signout:hover{background:#ffffff16;color:#fff}
+.mainArea{min-width:0;background:radial-gradient(ellipse at 90% 0%,#eee5d6 0,transparent 34%),#f5efe5}
+.topbar{position:sticky;top:0;z-index:20;height:72px;padding:0 clamp(18px,3vw,46px);background:#fffdf9ed;border-bottom:1px solid #e7e0d5;backdrop-filter:blur(14px)}
+.crumb{color:#9a9d91;letter-spacing:.13em}.userPill{border:1px solid #e8e1d6;background:#fffdf9;border-radius:40px;padding:7px 12px 7px 7px}.avatar{background:#e7eee5;color:#285642}
+.content{max-width:1540px;padding:36px clamp(16px,3vw,46px) 48px}
+.pageHeading{margin-bottom:28px}.pageHeading h1{color:#183c30;letter-spacing:-.045em}.pageHeading .eyebrow{color:#b95a45}
+.statGrid{gap:16px;margin-bottom:22px}.statCard,.panel{border:1px solid #e8e1d6;border-radius:17px;background:#fffdf9;box-shadow:var(--shadow-soft)}
+.statCard{position:relative;overflow:hidden;padding:21px;transition:transform .2s,box-shadow .2s}.statCard:hover{transform:translateY(-3px);box-shadow:0 18px 40px #183c3018}
+.statCard:after{content:"";position:absolute;right:-30px;top:-35px;width:105px;height:105px;border-radius:50%;background:#e9efe7;opacity:.7}
+.statCard p,.panelHead p{color:#77857a}.statCard strong{color:#183c30;font-size:26px}
+.statIcon{border-radius:11px}.violet,.green{background:#e7eee5;color:#285642}.blue{background:#f9e9e4;color:#b9503e}.amber{background:#f7efdf;color:#9b713c}
+.panel{margin-bottom:22px}.panelHead{padding:21px 23px}.panelHead h3{color:#183c30}
+.tableWrap{border-top:1px solid #f0ebe2;overflow-x:auto}
+th{background:#f8f5ee;color:#879086;padding:14px 18px}td{border-top:1px solid #f0ebe2;color:#607166;padding:14px 18px}td:first-child{color:#253f31}tbody tr:hover{background:#fbf8f2}
+.attentionGrid{gap:13px;padding:0 22px 22px}.attentionGrid button{border:1px solid #e9e2d7;border-radius:12px;background:#fbf8f2;padding:15px}.attentionGrid button:hover{background:#f1f6ef;border-color:#cbdacb;transform:translateY(-2px)}
+.attentionIcon{background:#e7eee5;color:#285642;border-radius:10px}.attentionGrid b{color:#d65b45}
+.status{border:1px solid #e8dfd1;background:#f8edda;color:#94682f;padding:7px 12px;border-radius:30px}.status.active{background:#e7efe5;border-color:#d6e3d4;color:#285642}
+.smallDanger{background:#fff0ec;color:#a94434;border-radius:9px}
+.warning{background:#fff3e5;border:1px solid #f0d8b5;border-radius:12px;color:#8b612d}
+.courseCard,.courseForm,.examReportSummary{border-radius:14px}
+.emptyState{border:1px dashed #ded6c8;background:#fbf8f2;border-radius:12px;color:#7d887d}
+.footer{color:#8b948a}
+.academyPage{gap:22px;color:#233d30}
+.academyHero{border-radius:20px;background:linear-gradient(130deg,#183c30,#285642);color:#f5efe5;box-shadow:0 15px 36px #183c3020;overflow:hidden}
+.academyHero h1,.academyHero h2,.academyHero h3{color:#fff}.academyKicker{color:#f0a28d}
+.academyPills span{background:#ffffff18;border:1px solid #ffffff20;color:#f6efe5;border-radius:30px}
+.academyArt,.academyVisual,.academyShield{border-radius:16px}
+.academyCourseRoadmap,.academySnapshot,.academyLesson,.academyExam,.academyCourse,.academyLessonNav,.academyIntro,.academyLessonConcept,.academyLessonVisual,.fieldGuidePictures,.fieldGuideVideo,.insuranceTutor{background:#fffdf9;border:1px solid #e8e1d6;border-radius:16px;box-shadow:0 8px 24px #183c300a}
+.academySnapshot{padding:20px}.academySnapshotStats{color:#285642}
+.academyToolbar,.academyFilters{gap:10px}
+.academyFilters input,.academyFilters select{border:1px solid #dedfd4;border-radius:9px;background:#fffefa;padding:10px}
+.academyCourseGrid{gap:16px}
+.academyCourse{overflow:hidden;transition:transform .18s,box-shadow .18s}.academyCourse:hover{transform:translateY(-3px);box-shadow:0 14px 30px #183c3014}
+.academyCourseBody{padding:18px}.academyCourse h3,.academyCourse h4{color:#183c30}.academyCounts{color:#77857a}.academyCourseOutcomes{color:#607166}
+.academyCardProgress,.academyProgress{background:#ecefe8;border-radius:30px;overflow:hidden}.academyCardProgress>span,.academyProgress>span{background:linear-gradient(90deg,#285642,#82a486)}
+.academyRing{color:#285642}.academyPath{color:#285642}
+.academyLessonLayout{gap:18px}.academyLessonNav{padding:17px}.academyLessonNav button{border-radius:9px}.academyLessonNav button.active{background:#e7eee5;color:#285642}
+.academyLesson{padding:22px}.academyLesson h1,.academyLesson h2,.academyLesson h3{color:#183c30}
+.academyLessonMeta{color:#78867a}.academyLessonBlocks{gap:12px}.academyBlockIcon{background:#e7eee5;color:#285642;border-radius:10px}
+.academyActions{gap:10px}.academyExam{padding:22px}.academyExam input,.academyExam select{accent-color:#285642}
+.academyVisualMapHead,.fieldGuidePicturesHead,.fieldGuideVideoHead,.insuranceTutorHead{background:#f8f5ee;border-radius:12px;padding:15px}
+.academyVisualFlow,.academyFlow{gap:12px}.academyVisualStep{border:1px solid #e8e1d6;background:#fbf8f2;border-radius:12px;padding:14px}
+.academyVisualFooter,.fieldGuideVideoNote{color:#748276}
+.insuranceTutor{padding:18px}.tutorPrompts button{border:1px solid #dfe6dc;background:#f5f8f2;color:#285642;border-radius:9px}
+.tutorAnswer{background:#f4f7f1;border:1px solid #dfe6dc;border-radius:12px;padding:15px}
+.academyBack,.quoteBack{color:#285642}
+.assignForm{background:#fbf8f2;border:1px solid #e8e1d6;border-radius:12px;padding:14px}
+.quoteStudio{color:#243d30;gap:18px}
+.quoteStudioTop{background:radial-gradient(circle at 88% 10%,#4b755d 0,transparent 34%),linear-gradient(130deg,#183c30,#285642);color:#f5efe5;border-radius:19px;padding:26px}
+.quoteStudioTop h1,.quoteStudioTop h2,.quoteStudioTop h3{color:#fff}.quoteStudioTop .eyebrow{color:#efa18c}
+.quoteMode{border:1px solid #ffffff35;background:#ffffff12;color:#f5efe5;border-radius:9px}
+.quoteProductLayout{gap:17px}.quoteProductNav,.quoteProductMain,.quoteResult{background:#fffdf9;border:1px solid #e8e1d6;border-radius:15px;box-shadow:0 8px 24px #183c300a}
+.quoteProductNav{padding:14px}.quoteProductNav button{border-radius:9px}.quoteProductNav button.selected{background:#e7eee5;color:#285642;border-color:#d3e1d1}
+.quoteProductMain{padding:22px}.quoteProductTitle h2,.quoteProductTitle h3{color:#183c30}
+.quoteStepCount{color:#8b958a}.quoteStepper button{border-radius:9px}.quoteStepper button.active{color:#285642;border-color:#b8cdb9}.quoteStepper button.done span,.quoteStepper button.active span{background:#285642;color:#fff}
+.quoteSection{border:1px solid #ebe5db;border-radius:12px;padding:16px;background:#fffefa}.quoteSectionHead{color:#285642}
+.quoteFields input,.quoteFields select,.quoteFields textarea{border:1px solid #dedfd4;border-radius:9px;background:#fffefa;padding:11px}
+.quoteAdd,.quoteRemove{border-radius:8px}.quoteDisclosure{border:1px solid #e8dfd1;background:#f8f4ec;color:#69766b;border-radius:10px}
+.quoteNavActions{gap:10px}.quoteResult{overflow:hidden}.quoteResultHead{background:#e8efe6;border-color:#dce7da;color:#285642;padding:18px}.quoteResultHead h3{color:#285642}
+.quoteFactorGrid,.quoteUnderwritingColumns{gap:12px}.quoteUnderwriting{background:#f8f5ee;border:1px solid #e8e1d6;border-radius:12px;padding:16px}
+.quoteSchedule,.quoteReviewItem{background:#fbf8f2;border:1px solid #e8e1d6;border-radius:10px;padding:13px}
+@media(max-width:1000px){.appShell{grid-template-columns:225px minmax(0,1fr)}.content{padding:28px 20px 40px}.authShell{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.appShell{display:block}.sidebar{position:relative;height:auto;min-height:0;padding:14px 13px 10px}.sidebar .brand{padding:0 5px 12px}.sidebar .brandLogo{width:175px}.sidebar nav{display:flex;overflow-x:auto;gap:6px;padding-bottom:4px}.navItem{flex:0 0 auto;min-height:39px;padding:9px 12px;font-size:11px}.navItem.active{box-shadow:inset 0 -3px #d65b45}.topbar{height:60px;padding:0 14px}.content{padding:22px 13px 32px}.pageHeading{align-items:flex-start;gap:10px}.statGrid{gap:10px}.statCard{padding:14px;border-radius:13px}.statCard strong{font-size:20px}.panel{border-radius:14px}.panelHead{padding:16px}.attentionGrid{padding:0 13px 14px}.authShell{display:flex;flex-direction:column}.authIntro{min-height:0;padding:24px 21px 20px}.authIntro .brandLogo{width:205px}.introCopy{margin:30px 0 12px}.introCopy h1{font-size:34px}.authPanel{padding:22px 13px 30px}.authCard{padding:22px 18px;border-radius:18px}.academyHero{padding:20px}.academyCourseGrid{grid-template-columns:1fr!important}.academyLessonLayout{grid-template-columns:1fr!important}.quoteProductLayout{grid-template-columns:1fr!important}.quoteProductNav{display:flex;overflow:auto}.quoteProductNav button{flex:0 0 auto}.quoteProductMain{padding:15px}.quoteFields{grid-template-columns:1fr!important}.quoteStudioTop{padding:19px}.tableWrap table{min-width:620px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
