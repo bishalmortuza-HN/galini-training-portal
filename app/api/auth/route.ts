@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   try {
     let user: any;
     if (body.action === "login") {
-      const rows = await sql`SELECT id, email, full_name, role, status, agent_code, agency_id, password_hash FROM profiles WHERE email = ${email} LIMIT 1`;
+      const rows = await sql`SELECT id, email, full_name, role, status, agent_code, agency_id, password_hash, auth_version FROM profiles WHERE email = ${email} LIMIT 1`;
       user = rows[0];
       if (!user || !verifyPassword(password, user.password_hash)) return NextResponse.json({ error: "Email or password is incorrect." }, { status: 401 });
       if (user.status === "suspended") return NextResponse.json({ error: "Your Galini account is on hold. Please contact the site administrator for assistance." }, { status: 403 });
@@ -52,13 +52,14 @@ export async function POST(request: NextRequest) {
         agencyId = agencies[0].id; agencyStatus = agencies[0].status;
       }
       const status = "active";
-      const inserted = await sql`INSERT INTO profiles (email, full_name, password_hash, role, status, agency_id) VALUES (${email}, ${fullName}, ${hashPassword(password)}, ${role}, ${status}, ${agencyId}) RETURNING id, email, full_name, role, status, agent_code, agency_id`;
+      const inserted = await sql`INSERT INTO profiles (email, full_name, password_hash, role, status, agency_id) VALUES (${email}, ${fullName}, ${hashPassword(password)}, ${role}, ${status}, ${agencyId}) RETURNING id, email, full_name, role, status, agent_code, agency_id, auth_version`;
       user = inserted[0];
       // Training enrollment is deferred until verified paid access is granted and the learner opens the Academy.
     }
     const agency = user.agency_id ? (await sql`SELECT agency_name, agency_code, status FROM agencies WHERE id = ${user.agency_id} LIMIT 1`)[0] || null : null;
-    const response = NextResponse.json({ user, agency, message: user.status === "active" ? "Your account is active. Submit your membership payment and wait for verification to unlock Training and Quote Practice." : "Registration received." });
-    response.cookies.set(COOKIE, makeSession(user.id), sessionCookieOptions());
+    const { password_hash: _passwordHash, ...publicUser } = user;
+    const response = NextResponse.json({ user: publicUser, agency, message: user.status === "active" ? "Your account is active. Submit your membership payment and wait for verification to unlock Training and Quote Practice." : "Registration received." });
+    response.cookies.set(COOKIE, makeSession(user.id, Number(user.auth_version ?? 0)), sessionCookieOptions());
     return response;
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || "Could not complete authentication." }, { status: 503 });
