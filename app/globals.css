@@ -588,3 +588,71 @@ th{background:#f8f5ee;color:#879086;padding:14px 18px}td{border-top:1px solid #f
 @media(max-width:1000px){.appShell{grid-template-columns:225px minmax(0,1fr)}.content{padding:28px 20px 40px}.authShell{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.appShell{display:block}.sidebar{position:relative;height:auto;min-height:0;padding:14px 13px 10px}.sidebar .brand{padding:0 5px 12px}.sidebar .brandLogo{width:175px}.sidebar nav{display:flex;overflow-x:auto;gap:6px;padding-bottom:4px}.navItem{flex:0 0 auto;min-height:39px;padding:9px 12px;font-size:11px}.navItem.active{box-shadow:inset 0 -3px #d65b45}.topbar{height:60px;padding:0 14px}.content{padding:22px 13px 32px}.pageHeading{align-items:flex-start;gap:10px}.statGrid{gap:10px}.statCard{padding:14px;border-radius:13px}.statCard strong{font-size:20px}.panel{border-radius:14px}.panelHead{padding:16px}.attentionGrid{padding:0 13px 14px}.authShell{display:flex;flex-direction:column}.authIntro{min-height:0;padding:24px 21px 20px}.authIntro .brandLogo{width:205px}.introCopy{margin:30px 0 12px}.introCopy h1{font-size:34px}.authPanel{padding:22px 13px 30px}.authCard{padding:22px 18px;border-radius:18px}.academyHero{padding:20px}.academyCourseGrid{grid-template-columns:1fr!important}.academyLessonLayout{grid-template-columns:1fr!important}.quoteProductLayout{grid-template-columns:1fr!important}.quoteProductNav{display:flex;overflow:auto}.quoteProductNav button{flex:0 0 auto}.quoteProductMain{padding:15px}.quoteFields{grid-template-columns:1fr!important}.quoteStudioTop{padding:19px}.tableWrap table{min-width:620px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+
+/* Final visual refinement: preserve the original blue/cyan Galini mark and simplify the workspace chrome. */
+.brandLogo{width:224px;height:auto;object-fit:contain;filter:none!important}
+.authIntro .brand,.sidebar .brand{display:flex;align-items:center}
+.authIntro .brandLogo,.sidebar .brandLogo{filter:none!important;background:#fff;border:1px solid rgba(255,255,255,.24);border-radius:12px;padding:9px 12px;box-shadow:0 8px 24px rgba(7,28,48,.14)}
+.authIntro{background:linear-gradient(145deg,#f5efe5 0%,#eee5d6 56%,#e5eadf 100%);color:#173b2c}
+.authIntro .introCopy .eyebrow{color:#b44f3d}
+.authIntro .introCopy h1{color:#183c30}
+.authIntro .introCopy p:not(.eyebrow){color:#52665a}
+.authIntro .introCopy>div>div{background:#fffdf9!important;border-color:#e4ddcf!important;box-shadow:0 8px 24px rgba(24,60,48,.05)}
+.authIntro .introCopy>div>div strong{color:#183c30}
+.authIntro .introCopy>div>div span{color:#66756a}
+.authIntro .introFoot{color:#758176}
+.authIntro:after{border-color:#28564212;box-shadow:0 0 0 42px #28564208,0 0 0 86px #28564205}
+.sidebar{background:#183c30}
+.sidebar .brand{padding:4px 8px 25px}
+.sidebar .brandLogo{width:205px}
+.workspaceTag{color:#d2ddcf}
+.navItem.active{background:#315f45;box-shadow:inset 3px 0 #d65b45}
+.mainArea{background:#f5efe5}
+.topbar{background:rgba(255,253,249,.94)}
+.content{max-width:1600px}
+.pageHeading h1{font-size:clamp(27px,3vw,38px);line-height:1.12}
+.statGrid{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.statCard{min-height:126px}
+.statCard:after{background:#e8eee5}
+.panel{overflow:hidden}
+.panelHead{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.tableWrap table{width:100%;border-collapse:separate;border-spacing:0}
+.tableWrap th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.tableWrap td{vertical-align:middle}
+.primary,.smallPrimary{font-weight:700}
+button:disabled{cursor:not-allowed;opacity:.58;transform:none!important}
+.form label,.quoteField{gap:7px}
+.form input,.form select,.form textarea,.quoteFields input,.quoteFields select,.quoteFields textarea{min-height:44px}
+.academyHero{padding:clamp(22px,3vw,36px)}
+.academyHero h1{font-size:clamp(28px,3.5vw,42px);line-height:1.12}
+.academyCourseGrid{grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
+.academyCourse{display:flex;flex-direction:column;min-height:100%}
+.academyCourseBody{display:flex;flex:1;flex-direction:column}
+.academyCourseBody>*:last-child{margin-top:auto}
+.academyVisualFlow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.academyVisualStep{min-width:0}
+.quoteStudioTop{padding:clamp(22px,3vw,36px)}
+.quoteProductLayout{align-items:start}
+.quoteProductNav{position:sticky;top:90px}
+.quoteProductMain{min-width:0}
+.quoteSection{background:#fffdf9}
+.quoteFields{gap:13px}
+.quoteField{min-width:0}
+.quoteField input,.quoteField select{width:100%;min-width:0}
+.notice{line-height:1.55}
+@media(max-width:900px){
+ .authShell{grid-template-columns:1fr}
+ .authIntro{min-height:auto;padding:30px clamp(20px,5vw,48px)}
+ .authPanel{padding:30px 20px}
+ .quoteProductNav{position:static}
+}
+@media(max-width:700px){
+ .authIntro .brandLogo{width:210px}
+ .sidebar .brandLogo{width:190px}
+ .academyVisualFlow{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .pageHeading{flex-wrap:wrap}
+ .userPill span:not(.avatar){display:none}
+ .panelHead{align-items:flex-start}
+ .quoteProductNav{max-width:100%}
+}
