@@ -14,7 +14,6 @@ export async function POST(req:NextRequest){
  const actor=await actorFor(req);
  if(!actor)return NextResponse.json({error:"Sign in to continue."},{status:401});
  if(!["agency_admin","agent"].includes(actor.role))return NextResponse.json({error:"This account cannot purchase membership."},{status:403});
- if(!(await hasPaidAccess(actor))===false){}
  if(await hasPaidAccess(actor))return NextResponse.json({error:"Membership is already active for this account. Contact the site administrator if you need to change plans."},{status:409});
  const body=await req.json().catch(()=>null),planCode=String(body?.plan||""),selected=plans[planCode];
  if(!selected)return NextResponse.json({error:"Choose a valid membership plan."},{status:400});
@@ -28,7 +27,7 @@ export async function POST(req:NextRequest){
  try{
   const pending=await sql`INSERT INTO payment_transactions(agency_id,user_id,plan,plan_code,amount_cents,currency,payment_method,payment_reference,status) VALUES(${agencyId},${accountId},${label},${planCode},${selected.amount},'USD','Stripe Checkout','Checkout session pending','pending') RETURNING id`;
   paymentId=pending[0].id;
-  const origin=process.env.NEXT_PUBLIC_APP_URL||req.nextUrl.origin;
+  const origin=process.env.NEXT_PUBLIC_APP_URL||process.env.GALINI_APP_URL||req.nextUrl.origin;
   const form=new URLSearchParams();
   form.set("mode","subscription");
   form.append("payment_method_types[0]","card");
@@ -56,7 +55,7 @@ export async function POST(req:NextRequest){
   const response=await fetch("https://api.stripe.com/v1/checkout/sessions",{method:"POST",headers:{Authorization:"Bearer "+secret,"Content-Type":"application/x-www-form-urlencoded"},body:form.toString(),cache:"no-store"});
   const session:any=await response.json();
   if(!response.ok||!session.url)throw new Error(session?.error?.message||"Stripe could not create a checkout session.");
-  await sql`UPDATE payment_transactions SET stripe_checkout_session_id=${session.id},stripe_customer_id=${typeof session.customer==="string"?session.customer:null},payment_reference=${session.id},updated_at=now() WHERE id=${paymentId}`.catch(async()=>{await sql`UPDATE payment_transactions SET stripe_checkout_session_id=${session.id},stripe_customer_id=${typeof session.customer==="string"?session.customer:null},payment_reference=${session.id} WHERE id=${paymentId}`;});
+  await sql`UPDATE payment_transactions SET stripe_checkout_session_id=${session.id},stripe_customer_id=${typeof session.customer==="string"?session.customer:null},payment_reference=${session.id} WHERE id=${paymentId}`;
   return NextResponse.json({url:session.url});
  }catch(e:any){
   if(paymentId)await sql`UPDATE payment_transactions SET status='failed',admin_note=${String(e?.message||"Stripe checkout failed").slice(0,900)} WHERE id=${paymentId}`.catch(()=>{});
