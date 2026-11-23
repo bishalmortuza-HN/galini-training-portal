@@ -12,7 +12,7 @@ type Quote={id:string;customer_name:string;line_of_business:string;status:string
 type Assessment={id:string;course_id:string;lesson_id:string|null;section_title?:string|null;title:string;instructions:string;passing_score:number;questions:{prompt:string;choices:string[]}[]};
 type Certificate={id:string;course_title:string;certificate_code:string;issued_at:string};
 type ExamAttempt={id:string;score:number;passed:boolean;submitted_at:string;full_name?:string;email:string;agency_name?:string;course_title:string;assessment_title:string;section_title?:string|null;passing_score:number};
-const nice=(v?:string)=>v==="submitted"?"Submitted for review":v==="reviewed"?"Approved":v==="needs_revision"?"Revision requested":v==="completed"?"Review completed":v?v.replaceAll("_"," ").replace(/\b\w/g,x=>x.toUpperCase()):"Pending";
+const nice=(v?:string)=>v==="submitted"?"Submitted for review":v==="reviewed"?"Approved":v==="rejected"?"Rejected":v==="needs_revision"?"Revision requested":v==="completed"?"Review completed":v?v.replaceAll("_"," ").replace(/\b\w/g,x=>x.toUpperCase()):"Pending";
 const roleName=(r:string)=>r==="platform_admin"?"Site administrator":r==="agency_admin"?"Agency administrator":"Agent";
 async function api(path:string,method="GET",body?:any){const r=await fetch(path,{method,credentials:"same-origin",headers:body?{"Content-Type":"application/json"}:undefined,body:body?JSON.stringify(body):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"Request failed.");return d;}
 export default function Home(){
@@ -54,7 +54,7 @@ export default function Home(){
  async function submitPayment(e:FormEvent){e.preventDefault();await run(()=>api("/api/payments","POST",{plan,payment_reference:paymentRef}),"Payment reference submitted for manual review.");setPaymentRef("");}
  async function submitQuoteForReview(id:string){await run(()=>api("/api/quote-practice","PATCH",{id,submit:true}),"Quote submitted to your agency review queue.");}
  function updateQuoteNote(id:string,value:string){setQuoteNotes(current=>({...current,[id]:value}));}
- async function reviewQuote(id:string,status:"reviewed"|"needs_revision"|"completed"){const note=quoteNotes[id]||"";await run(()=>api("/api/quote-practice","PATCH",{id,status,note}),status==="reviewed"?"Quote approved.":status==="needs_revision"?"Revision requested from agent.":"Review marked complete.");setQuoteNotes(v=>({...v,[id]:""}));}
+ async function reviewQuote(id:string,status:"reviewed"|"rejected"|"needs_revision"|"completed"){const note=quoteNotes[id]||"";if(["rejected","needs_revision"].includes(status)&&!note.trim()){setMessage("Add a reason before rejecting or requesting a revision.");return;}await run(()=>api("/api/quote-practice","PATCH",{id,status,note}),status==="reviewed"?"Quote approved.":status==="rejected"?"Quote rejected with reason.":status==="needs_revision"?"Revision requested from agent.":"Review marked complete.");setQuoteNotes(v=>({...v,[id]:""}));}
  async function completeLesson(id:string){await run(()=>api("/api/training","POST",{action:"complete_lesson",lesson_id:id}),"Lesson marked complete.");}
  async function enrollCourse(id:string){await run(()=>api("/api/training","POST",{action:"self_enroll",course_id:id}),"You are enrolled. Your course progress will now be saved.");}
  async function submitAssessment(e:FormEvent,id:string){e.preventDefault();const selected=answers[id]||{};const assessment=assessments.find(x=>x.id===id);if(!assessment||assessment.questions.some((_,i)=>selected[String(i)]===undefined||selected[String(i)]==="")){setMessage("Please answer every question before submitting the exam.");return;}setBusy(true);setMessage("");try{const d=await api("/api/assessments","POST",{assessment_id:id,answers:selected});setMessage(d.score+"% — "+d.message);await refresh();}catch(e:any){setMessage(e.message||"Exam submission failed.");}finally{setBusy(false);}}
@@ -86,13 +86,15 @@ export default function Home(){
       <td>{new Date(q.created_at).toLocaleString()}{q.reviewed_at&&<small style={{display:"block",color:"#718096"}}>Reviewed {new Date(q.reviewed_at).toLocaleString()}</small>}</td>
       <td>
        <button type="button" className="quoteDetailsToggle" onClick={()=>setExpandedQuote(q.id)}>View quote details</button>
+       {(admin||agencyAdmin)&&q.status!=="completed"&&<button className="smallPrimary" disabled={busy} onClick={()=>setEditingQuote(q)}>Edit quote</button>}
        {(admin||agencyAdmin)&&q.status==="submitted"&&<>
-        <input aria-label={"Review note for "+q.customer_name} value={quoteNotes[q.id]||""} onChange={e=>updateQuoteNote(q.id,e.target.value)} placeholder="Add a review note"/>
+        <input aria-label={"Review note for "+q.customer_name} value={quoteNotes[q.id]||""} onChange={e=>updateQuoteNote(q.id,e.target.value)} placeholder="Reason required for reject / revision"/>
         <button className="smallPrimary" disabled={busy} onClick={()=>reviewQuote(q.id,"reviewed")}>Approve</button>
+        <button className="smallDanger" disabled={busy} onClick={()=>reviewQuote(q.id,"rejected")}>Reject</button>
         <button className="smallDanger" disabled={busy} onClick={()=>reviewQuote(q.id,"needs_revision")}>Request revision</button>
        </>}
        {(admin||agencyAdmin)&&q.status==="reviewed"&&<button className="smallPrimary" disabled={busy} onClick={()=>reviewQuote(q.id,"completed")}>Complete review</button>}
-       {!admin&&!agencyAdmin&&q.status==="needs_revision"&&<button className="smallPrimary" disabled={busy} onClick={()=>setEditingQuote(q)}>Edit returned quote & resubmit</button>}
+       {!admin&&!agencyAdmin&&["needs_revision","rejected"].includes(q.status)&&<button className="smallPrimary" disabled={busy} onClick={()=>setEditingQuote(q)}>Edit returned quote & resubmit</button>}
        {!admin&&!agencyAdmin&&q.status==="draft"&&<><button className="smallPrimary" disabled={busy} onClick={()=>setEditingQuote(q)}>Edit draft</button><button className="smallPrimary" disabled={busy} onClick={()=>submitQuoteForReview(q.id)}>Submit for review</button></>}
        {!admin&&!agencyAdmin&&q.status==="submitted"&&<span className="muted">Waiting for administrator review</span>}
        {q.status==="completed"&&<span className="status active">Review complete</span>}
