@@ -47,22 +47,36 @@ export async function PATCH(req:NextRequest){
  if(!(await hasPaidAccess(a)))return NextResponse.json(paymentRequiredResponse(),{status:402});
  const b=await req.json().catch(()=>null);
  if(!b?.id)return NextResponse.json({error:"Submission id required."},{status:400});
- const note=String(b.note||"").slice(0,2000);
+ const note=String(b.note||"").trim().slice(0,2000);
  try{
   if(["platform_admin","agency_admin"].includes(a.role)){
-   const allowed=["reviewed","needs_revision","completed"];
-   if(!allowed.includes(String(b.status)))return NextResponse.json({error:"Choose approve, request revision, or complete review."},{status:400});
-   if(b.status==="needs_revision"&&!note.trim())return NextResponse.json({error:"Add a clear reviewer note describing what the agent must correct."},{status:400});
+   if(b.action==="edit"){
+    const customer=String(b.customer_name||"").trim();
+    const line=String(b.line_of_business||"");
+    const risk=b.risk_data&&typeof b.risk_data==="object"&&!Array.isArray(b.risk_data)?b.risk_data:null;
+    if(!customer||!supported.includes(line)||!risk)return NextResponse.json({error:"Applicant, supported line of business and complete quote details are required."},{status:400});
+    const rating=ratePractice(line,risk);
+    const revised={...risk,practice_rating:rating};
+    const updatedRisk=JSON.stringify(revised);
+    const rows=a.role==="platform_admin"
+     ?await sql`UPDATE quote_practice_submissions SET customer_name=${customer.slice(0,180)},line_of_business=${line},effective_date=${b.effective_date||null},risk_data=jsonb_set(${updatedRisk}::jsonb,'{workflow_history}',COALESCE(risk_data->'workflow_history','[]'::jsonb)||jsonb_build_array(jsonb_build_object('action','admin_quote_edited','actor_id',${String(a.id)}::uuid,'actor_role',${String(a.role)}::text,'at',now()))),status='submitted',reviewer_note=NULL,reviewed_by=NULL,reviewed_at=NULL,updated_at=now() WHERE id=${b.id} AND status<>'completed' RETURNING id,status,customer_name,line_of_business,effective_date,risk_data,updated_at`
+     :await sql`UPDATE quote_practice_submissions SET customer_name=${customer.slice(0,180)},line_of_business=${line},effective_date=${b.effective_date||null},risk_data=jsonb_set(${updatedRisk}::jsonb,'{workflow_history}',COALESCE(risk_data->'workflow_history','[]'::jsonb)||jsonb_build_array(jsonb_build_object('action','admin_quote_edited','actor_id',${String(a.id)}::uuid,'actor_role',${String(a.role)}::text,'at',now()))),status='submitted',reviewer_note=NULL,reviewed_by=NULL,reviewed_at=NULL,updated_at=now() WHERE id=${b.id} AND agency_id=${a.agency_id} AND status<>'completed' RETURNING id,status,customer_name,line_of_business,effective_date,risk_data,updated_at`;
+    if(!rows.length)return NextResponse.json({error:"Quote not found in your review scope, or it is locked after completion."},{status:404});
+    return NextResponse.json({ok:true,submission:safeRows(rows)[0],status:rows[0].status,rating});
+   }
+   const allowed=["reviewed","rejected","needs_revision","completed"];
+   if(!allowed.includes(String(b.status)))return NextResponse.json({error:"Choose approve, reject, request revision, or complete review."},{status:400});
+   if(["rejected","needs_revision"].includes(String(b.status))&&!note)return NextResponse.json({error:"A reason is required for rejection or a revision request."},{status:400});
    const rows=a.role==="platform_admin"
-    ?await sql`UPDATE quote_practice_submissions SET status=${b.status},reviewer_note=${note},reviewed_by=${a.id},reviewed_at=now(),updated_at=now(),risk_data=jsonb_set(COALESCE(risk_data,'{}'::jsonb),'{workflow_history}',COALESCE(risk_data->'workflow_history','[]'::jsonb)||jsonb_build_array(jsonb_build_object('action',${String(b.status)}::text,'note',${note}::text,'actor_id',${String(a.id)}::uuid,'actor_role',${String(a.role)}::text,'at',now()))) WHERE id=${b.id} AND ((${b.status}='completed' AND status='reviewed') OR (${b.status}<>'completed' AND status='submitted')) RETURNING id,status`
-    :await sql`UPDATE quote_practice_submissions SET status=${b.status},reviewer_note=${note},reviewed_by=${a.id},reviewed_at=now(),updated_at=now(),risk_data=jsonb_set(COALESCE(risk_data,'{}'::jsonb),'{workflow_history}',COALESCE(risk_data->'workflow_history','[]'::jsonb)||jsonb_build_array(jsonb_build_object('action',${String(b.status)}::text,'note',${note}::text,'actor_id',${String(a.id)}::uuid,'actor_role',${String(a.role)}::text,'at',now()))) WHERE id=${b.id} AND agency_id=${a.agency_id} AND ((${b.status}='completed' AND status='reviewed') OR (${b.status}<>'completed' AND status='submitted')) RETURNING id,status`;
-   if(!rows.length)return NextResponse.json({error:"Submission not found in your review scope."},{status:404});
+    ?await sql`UPDATE quote_practice_submissions SET status=${b.status},reviewer_note=${note||null},reviewed_by=${a.id},reviewed_at=now(),updated_at=now(),risk_data=jsonb_set(COALESCE(risk_data,'{}'::jsonb),'{workflow_history}',COALESCE(risk_data->'workflow_history','[]'::jsonb)||jsonb_build_array(jsonb_build_object('action',${String(b.status)}::text,'note',${note}::text,'actor_id',${String(a.id)}::uuid,'actor_role',${String(a.role)}::text,'at',now()))) WHERE id=${b.id} AND ((${b.status}='completed' AND status='reviewed') OR (${b.status}<>'completed' AND status='submitted')) RETURNING id,status`
+    :await sql`UPDATE quote_practice_submissions SET status=${b.status},reviewer_note=${note||null},reviewed_by=${a.id},reviewed_at=now(),updated_at=now(),risk_data=jsonb_set(COALESCE(risk_data,'{}'::jsonb),'{workflow_history}',COALESCE(risk_data->'workflow_history','[]'::jsonb)||jsonb_build_array(jsonb_build_object('action',${String(b.status)}::text,'note',${note}::text,'actor_id',${String(a.id)}::uuid,'actor_role',${String(a.role)}::text,'at',now()))) WHERE id=${b.id} AND agency_id=${a.agency_id} AND ((${b.status}='completed' AND status='reviewed') OR (${b.status}<>'completed' AND status='submitted')) RETURNING id,status`;
+   if(!rows.length)return NextResponse.json({error:"Submission not found in your review scope, or its status has changed."},{status:404});
    return NextResponse.json({ok:true,status:rows[0].status});
   }
   if(a.role!=="agent")return NextResponse.json({error:"You do not have permission to update this submission."},{status:403});
   const current=await sql`SELECT status FROM quote_practice_submissions WHERE id=${b.id} AND agent_id=${a.id}`;
   if(!current.length)return NextResponse.json({error:"Submission not found."},{status:404});
-  if(!["draft","needs_revision"].includes(current[0].status))return NextResponse.json({error:"Only your own draft or a submission returned for revision can be edited."},{status:409});
+  if(!["draft","needs_revision","rejected"].includes(current[0].status))return NextResponse.json({error:"Only your own draft, rejected quote, or submission returned for revision can be edited."},{status:409});
   const hasRisk=b.risk_data&&typeof b.risk_data==="object";
   const customer=String(b.customer_name||"").trim();
   const line=String(b.line_of_business||"");
