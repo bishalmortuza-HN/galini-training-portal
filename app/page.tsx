@@ -81,7 +81,7 @@ export default function Home(){
       <td><strong>{q.customer_name}</strong><small style={{display:"block",color:"#718096"}}>{q.line_of_business}</small></td>
       <td>{q.risk_data?.practice_rating?.estimated_annual_premium?"$"+Number(q.risk_data.practice_rating.estimated_annual_premium).toLocaleString():"—"}</td>
       <td>{q.agent_name||user.full_name}</td>
-      <td><span className={q.status==="reviewed"||q.status==="completed"?"status active":q.status==="needs_revision"?"status pending":"status"}>{nice(q.status)}</span></td>
+      <td><span className={q.status==="reviewed"||q.status==="completed"?"status active":q.status==="needs_revision"||q.status==="rejected"?"status pending":"status"}>{nice(q.status)}</span></td>
       <td>{q.reviewer_note||"No reviewer feedback yet."}{q.reviewer_name&&<small style={{display:"block",color:"#718096"}}>By {q.reviewer_name}</small>}</td>
       <td>{new Date(q.created_at).toLocaleString()}{q.reviewed_at&&<small style={{display:"block",color:"#718096"}}>Reviewed {new Date(q.reviewed_at).toLocaleString()}</small>}</td>
       <td>
