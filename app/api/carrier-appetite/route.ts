@@ -24,8 +24,8 @@ export async function GET(request:NextRequest){
  if(!actor)return NextResponse.json({error:"Sign in required."},{status:401});
  try{
   const rows=actor.role==="platform_admin"
-   ?await sql`SELECT e.*,p.full_name AS submitted_by,g.name AS agency_name FROM carrier_appetite_entries e LEFT JOIN profiles p ON p.id=e.created_by LEFT JOIN agencies g ON g.id=e.agency_id ORDER BY e.carrier_name,e.program_name`
-   :await sql`SELECT e.*,p.full_name AS submitted_by,g.name AS agency_name FROM carrier_appetite_entries e LEFT JOIN profiles p ON p.id=e.created_by LEFT JOIN agencies g ON g.id=e.agency_id WHERE e.is_active=true OR e.created_by=${actor.id} ORDER BY e.carrier_name,e.program_name`;
+   ?await sql`SELECT e.*,p.full_name AS submitted_by,g.agency_name AS agency_name FROM carrier_appetite_entries e LEFT JOIN profiles p ON p.id=e.created_by LEFT JOIN agencies g ON g.id=e.agency_id ORDER BY e.carrier_name,e.program_name`
+   :await sql`SELECT e.*,p.full_name AS submitted_by,g.agency_name AS agency_name FROM carrier_appetite_entries e LEFT JOIN profiles p ON p.id=e.created_by LEFT JOIN agencies g ON g.id=e.agency_id WHERE e.is_active=true OR e.created_by=${actor.id} ORDER BY e.carrier_name,e.program_name`;
   return NextResponse.json({entries:rows});
  }catch(error:any){return NextResponse.json({error:error?.message||"Carrier appetite list is unavailable."},{status:503});}
 }
