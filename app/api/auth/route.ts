@@ -19,7 +19,9 @@ export async function POST(request: NextRequest) {
   if (!body || !["login","register"].includes(body.action)) return NextResponse.json({ error: "Invalid authentication request." }, { status: 400 });
   const email = String(body.email || "").trim().toLowerCase();
   const password = String(body.password || "");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 10) return NextResponse.json({ error: "Enter a valid email and a password with at least 10 characters." }, { status: 400 });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
+  if (body.action === "register" && password.length < 10) return NextResponse.json({ error: "For new accounts, use a password with at least 10 characters." }, { status: 400 });
+  if (body.action === "login" && !password) return NextResponse.json({ error: "Enter your password." }, { status: 400 });
   try {
     let user: any;
     if (body.action === "login") {
