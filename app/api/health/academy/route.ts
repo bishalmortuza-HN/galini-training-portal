@@ -1,0 +1,4 @@
+import {NextResponse} from "next/server";
+import {sql} from "@/lib/db";
+export const dynamic="force-dynamic";
+export async function GET(){try{const rows=await sql`SELECT (SELECT count(*)::int FROM training_courses WHERE is_published=true) AS published_courses,(SELECT count(*)::int FROM training_lessons WHERE is_published=true) AS published_lessons,(SELECT count(*)::int FROM training_assessments WHERE is_published=true) AS published_assessments,(SELECT count(*)::int FROM training_certificates) AS certificates,(SELECT count(*)::int FROM payment_transactions) AS payment_records,(SELECT count(*)::int FROM quote_practice_submissions) AS quote_practice_records`;return NextResponse.json({ok:true,...rows[0]});}catch(e:any){return NextResponse.json({ok:false,error:e?.message||"Academy schema unavailable."},{status:503});}}
