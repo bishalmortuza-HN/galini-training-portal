@@ -114,4 +114,5 @@ export default function Home(){
    <button type="button" className="primary" onClick={()=>setExpandedQuote("")}>Close details</button>
   </section></div>}
  </>}
+<footer className="footer">Galini Training Portal <span>Unified role-based workspace</span></footer></div></section></main>;
 }
