@@ -30,6 +30,10 @@ export async function POST(req:NextRequest){
     else await sql`UPDATE payment_transactions SET stripe_customer_id=${typeof obj.customer==="string"?obj.customer:null},stripe_subscription_id=${typeof obj.subscription==="string"?obj.subscription:null},payment_method='Stripe ACH / card',admin_note='Checkout completed. Waiting for bank payment confirmation.' WHERE id=${paymentId}`;
    }
   }
+  if(event.type==="checkout.session.async_payment_failed"||event.type==="checkout.session.expired"){
+   const paymentId=String(obj.metadata?.payment_id||"");
+   if(paymentId)await sql`UPDATE payment_transactions SET status='failed',admin_note='Stripe checkout did not complete. Start a new checkout to try again.' WHERE id=${paymentId}`;
+  }
   if(event.type==="invoice.paid"){
    const subId=typeof obj.subscription==="string"?obj.subscription:obj.parent?.subscription_details?.subscription;
    const invoiceId=String(obj.id||"");
