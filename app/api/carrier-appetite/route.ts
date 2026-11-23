@@ -42,7 +42,7 @@ export async function POST(request:NextRequest){
  if(!v.carrier_name)return NextResponse.json({error:"Enter an insurance company name."},{status:400});
  try{
   const rows=await sql`INSERT INTO carrier_appetite_entries(carrier_name,program_name,line_of_business,class_codes,naics_codes,states,business_keywords,appetite_status,binding_status,min_revenue,max_revenue,max_payroll,notes,underwriting_guidelines,source,is_active,created_by,updated_at)
-  VALUES(${v.carrier_name},${v.program_name},${v.line_of_business},${v.class_codes},${v.naics_codes},${v.states},${v.business_keywords},${v.appetite_status},${v.binding_status},${v.min_revenue},${v.max_revenue},${v.max_payroll},${v.notes},${v.underwriting_guidelines},${v.source},${v.is_active},${actor.id},now()) RETURNING *`;
+  VALUES(${v.carrier_name},${v.program_name},${v.line_of_business},${JSON.stringify(v.class_codes) }::jsonb,${JSON.stringify(v.naics_codes) }::jsonb,${JSON.stringify(v.states) }::jsonb,${JSON.stringify(v.business_keywords) }::jsonb,${v.appetite_status},${v.binding_status},${v.min_revenue},${v.max_revenue},${v.max_payroll},${v.notes},${v.underwriting_guidelines},${v.source},${v.is_active},${actor.id},now()) RETURNING *`;
   return NextResponse.json({entry:rows[0]},{status:201});
  }catch(error:any){return NextResponse.json({error:error?.message||"Could not save carrier appetite record."},{status:503});}
 }
@@ -53,7 +53,7 @@ export async function PATCH(request:NextRequest){
  const body=await request.json().catch(()=>null),id=String(body?.id||"").trim(),v=clean(body);
  if(!id||!v.carrier_name)return NextResponse.json({error:"A record ID and insurance company name are required."},{status:400});
  try{
-  const rows=await sql`UPDATE carrier_appetite_entries SET carrier_name=${v.carrier_name},program_name=${v.program_name},line_of_business=${v.line_of_business},class_codes=${v.class_codes},naics_codes=${v.naics_codes},states=${v.states},business_keywords=${v.business_keywords},appetite_status=${v.appetite_status},binding_status=${v.binding_status},min_revenue=${v.min_revenue},max_revenue=${v.max_revenue},max_payroll=${v.max_payroll},notes=${v.notes},underwriting_guidelines=${v.underwriting_guidelines},source=${v.source},is_active=${v.is_active},updated_at=now() WHERE id=${id} RETURNING *`;
+  const rows=await sql`UPDATE carrier_appetite_entries SET carrier_name=${v.carrier_name},program_name=${v.program_name},line_of_business=${v.line_of_business},class_codes=${JSON.stringify(v.class_codes) }::jsonb,naics_codes=${JSON.stringify(v.naics_codes) }::jsonb,states=${JSON.stringify(v.states) }::jsonb,business_keywords=${JSON.stringify(v.business_keywords) }::jsonb,appetite_status=${v.appetite_status},binding_status=${v.binding_status},min_revenue=${v.min_revenue},max_revenue=${v.max_revenue},max_payroll=${v.max_payroll},notes=${v.notes},underwriting_guidelines=${v.underwriting_guidelines},source=${v.source},is_active=${v.is_active},updated_at=now() WHERE id=${id} RETURNING *`;
   if(!rows.length)return NextResponse.json({error:"Carrier appetite record not found."},{status:404});
   return NextResponse.json({entry:rows[0]});
  }catch(error:any){return NextResponse.json({error:error?.message||"Could not update carrier appetite record."},{status:503});}
